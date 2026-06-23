@@ -1,0 +1,45 @@
+# Environment variables (contains credentials)
+.env
+*.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+logs/
+debezium_data/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (temporary files)
+services/portal_backend/uploads/*
+!services/portal_backend/uploads/.gitkeep
+
+# Docker
+*.log
+
+# Build outputs
+services/portal_frontend/dist/
+dist/

@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  portal_backend:
+    build:
+      context: ./services/portal_backend
+      dockerfile: Dockerfile
+    container_name: cdc_portal_backend
+    ports:
+      - "3011:3011"
+    environment:
+      - DEBUG=true
+      - MYSQL_HOST=${MYSQL_HOST:-localhost}
+      - DB_HOST=${MYSQL_HOST:-localhost}
+      - DB_USER=${MYSQL_USER:-synthetic_db_user}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-REDACTED_PASSWORD}
+      - DB_NAME=${MYSQL_DATABASE:-insuranceWarehouse}
+      - DB_PORT=${MYSQL_PORT:-3306}
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3011/api/health/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - cdc-network
+
+  portal_frontend:
+    build:
+      context: ./services/portal_frontend
+      dockerfile: Dockerfile
+    container_name: cdc_portal_frontend
+    ports:
+      - "3010:80"
+    environment:
+      - VITE_API_URL=http://localhost:3011
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - cdc-network
+
+networks:
+  cdc-network:
+    name: cdc-network
+    external: true

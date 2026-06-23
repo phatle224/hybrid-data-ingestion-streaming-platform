@@ -30,7 +30,7 @@ Portal hiện tại đã nâng cấp rule chống trùng lặp từ **4 keys** l
 
 ## 🏥 BẢN RIÊNG: ÁP DỤNG CHO BẢO HIỂM HEALTH (SỨC KHOẺ)
 
-### 1. Field Mapping — [health_mapping.py](file:///d:/affina/phase_cdc/affina_portal_cdc/backend/configs/mappings/health_mapping.py)
+### 1. Field Mapping — [health_mapping.py](file:///d:/affina/phase_cdc/cdc_reporting/services/portal_backend/configs/mappings/health_mapping.py)
 | Thông tin | Cột Excel | Portal Map | CDC Map Cũ | Cần Phải Đổi Thành |
 |---|---|---|---|---|
 | Chỉnh sửa Phí | `Phí bảo hiểm` | `feeInsurance` | `feeMainBenefit` | `feeInsurance` |
@@ -38,14 +38,14 @@ Portal hiện tại đã nâng cấp rule chống trùng lặp từ **4 keys** l
 > [!WARNING]
 > Các bảo hiểm khác (MOTO, VEHICLE, MEDICAL, TRAVEL) trong hệ thống CDC hiện **ĐÃ MAP ĐÚNG** `feeInsurance`. Riêng HEALTH ngày xưa map nhầm sang `feeMainBenefit`. Vì Portal ghi vào `feeInsurance`, nếu CDC quét file mà vẫn dùng `feeMainBenefit` sẽ gây MẤT DATA phí bảo hiểm do 2 tên field lệch nhau.
 
-### 2. Danh sách Mở rộng NOT NULL (Portal [health_mapping.py](file:///d:/affina/phase_cdc/affina_portal_cdc/backend/configs/mappings/health_mapping.py))
+### 2. Danh sách Mở rộng NOT NULL (Portal [health_mapping.py](file:///d:/affina/phase_cdc/cdc_reporting/services/portal_backend/configs/mappings/health_mapping.py))
 | | Nội dung kiểm tra | Chi tiết quy tắc đã đưa vào Cổng Portal |
 |---|---|---|
 | **OR logic** | Quản lý CCCD / Passport | 1 trong 2 bắt buộc phải có thông tin (Không kiểm tra riêng từng cái).
 | **Danh sách field** | Bắt buộc 17+ fields | Đảm bảo nhập tối đa dữ liệu thông tin (SDT, Email, DOB NĐBH...).
 
-### 3. Tăng cường Validation & Normalize — [health_processor.py](file:///d:/affina/phase_cdc/affina_portal_cdc/backend/services/processors/health_processor.py)
-Nếu CDC muốn implement cùng rule để giữ tính nhất quán, hãy chỉnh sửa [processors/health_processor.py](file:///d:/affina/phase_cdc/affina_portal_cdc/backend/services/processors/health_processor.py):
+### 3. Tăng cường Validation & Normalize — [health_processor.py](file:///d:/affina/phase_cdc/cdc_reporting/services/portal_backend/services/processors/health_processor.py)
+Nếu CDC muốn implement cùng rule để giữ tính nhất quán, hãy chỉnh sửa [processors/health_processor.py](file:///d:/affina/phase_cdc/cdc_reporting/services/portal_backend/services/processors/health_processor.py):
 - **Title Case**: Viết hoa chữ cái đầu cho `peopleName`, `payerName` (vd: `Trịnh Bảo Ngọc`).
 - **Phone format**: Normalize regex `^0\d{9,10}$`, tự động thêm prepent `0` vào đầu để khôi phục sdt bị Excel nuốt.
 - **Buyer-as-beneficiary fallback**: Nếu `peopleName` trống → copy từ `payerName`; set `peopleRelationship = 'Bản thân'`. *(Chưa có trong source CDC cũ).*

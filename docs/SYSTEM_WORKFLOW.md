@@ -1,7 +1,7 @@
 # Kiến Trúc Đồng Bộ và Luồng Hoạt Động Hệ Thống (System Workflow)
 
 Tài liệu này mô tả chi tiết luồng công việc (workflow), cấu trúc kiến trúc và mối liên hệ chặt chẽ giữa hai dự án:
-1. **`affina_portal_cdc`** (Cổng tải lên dữ liệu Excel Offline - Frontend React + Backend FastAPI)
+1. **Portal Services** (Cổng tải lên dữ liệu Excel Offline - `services/portal_frontend` (React) + `services/portal_backend` (FastAPI))
 2. **`cdc_reporting`** (Hệ thống CDC trực tuyến và Streaming ETL - Python + Kafka + Redis + Debezium + RabbitMQ)
 
 ---
@@ -12,7 +12,7 @@ Sự kết hợp giữa 2 dự án tạo nên một pipeline dữ liệu hoàn c
 
 ```mermaid
 graph TB
-    subgraph "affina_portal_cdc (Kênh Offline)"
+    subgraph "Portal Services (Kênh Offline)"
         EXCEL["File Excel Hợp Đồng<br/>(Travel, Vehicle, Health...)"]
         PORTAL_FE["Portal UI (React)<br/>:3000"]
         PORTAL_BE["Portal API (FastAPI)<br/>:8000"]
@@ -85,7 +85,7 @@ graph TB
 
 ---
 
-## 2. Chi Tiết Luồng Xử Lý Dự Án `affina_portal_cdc`
+## 2. Chi Tiết Luồng Xử Lý Dự Án Portal (Excel Ingestion)
 
 Dự án này là cổng tiếp nhận các file Excel hợp đồng từ các đại lý hoặc đối tác để đưa vào hệ thống dưới dạng dữ liệu ngoại tuyến (Offline).
 
@@ -170,7 +170,7 @@ Dự án này chịu trách nhiệm đồng bộ dữ liệu thời gian thực 
     *   Với mỗi hợp đồng, nó trích xuất 7 trường thông tin trên, chuẩn hóa và gộp thành một khóa Redis theo format:
         `contract:dedup:{contractId}:{name}:{majorName}:{companyProviderName}:{startDate}:{endDate}:{feeInsurance}`
     *   Lưu khóa này lên Redis với thời gian hết hạn **TTL là 7 ngày** (hoặc 24 giờ tùy cấu hình hệ thống). Giá trị lưu trữ đi kèm là một JSON metadata dạng: `{"source": "online", "contractObjectId": "...", "insuranceType": "HEALTH"}`.
-2.  **Kiểm Tra Khi Upload Excel (Phía `affina_portal_cdc`)**:
+2.  **Kiểm Tra Khi Upload Excel (Phía `portal_backend`)**:
     *   Khi người dùng tải lên một tệp Excel thông qua portal, backend FastAPI sẽ duyệt qua từng dòng hợp đồng trong file.
     *   Với mỗi dòng dữ liệu, backend trích xuất 7 thông tin tương ứng, thực hiện chuẩn hóa tương tự và ghép thành khóa Redis.
     *   Gửi lệnh kiểm tra nhanh tồn tại (`EXISTS`) lên Redis:
@@ -183,8 +183,8 @@ Dự án này chịu trách nhiệm đồng bộ dữ liệu thời gian thực 
 
 | Thành phần | Thuộc dự án | Vai trò chính | Đầu vào (Input) | Đầu ra (Output) |
 |---|---|---|---|---|
-| **Portal React FE** | `affina_portal_cdc` | Giao diện người dùng tải lên Excel và xem kết quả thống kê trùng lặp. | Tác vụ người dùng, file Excel | HTTP Requests tới API |
-| **Portal FastAPI BE**| `affina_portal_cdc` | Phân tích file Excel, gọi processor phù hợp, check trùng lặp qua Redis. | File Excel + API Request | Ghi dữ liệu vào `stgContractObjectOffline` |
+| **Portal React FE** | `portal_frontend` | Giao diện người dùng tải lên Excel và xem kết quả thống kê trùng lặp. | Tác vụ người dùng, file Excel | HTTP Requests tới API |
+| **Portal FastAPI BE**| `portal_backend` | Phân tích file Excel, gọi processor phù hợp, check trùng lặp qua Redis. | File Excel + API Request | Ghi dữ liệu vào `stgContractObjectOffline` |
 | **Debezium Connect** | `cdc_reporting` | Lắng nghe thay đổi dữ liệu (CDC) từ DB Source và DB Staging. | MySQL Binlog | Các sự kiện CDC trên Kafka |
 | **CDC Consumer** | `cdc_reporting` | Đọc dữ liệu thô từ Kafka, định dạng kiểu dữ liệu và ghi vào Staging. | Kafka `source.*` topics | Bảng staging tại `insuranceWarehouse` |
 | **Streaming ETL** | `cdc_reporting` | Hợp nhất dữ liệu chi tiết của các loại bảo hiểm thành một Wide Table báo cáo. | Kafka `staging.*` topics | Bảng `insuranceReporting.contract` |
