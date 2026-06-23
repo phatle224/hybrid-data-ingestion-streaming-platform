@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cdc_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - cdc-network
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass admin
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "admin", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: cdc_redis_ui
+    restart: always
+    ports:
+      - "8081:8081"
+    networks:
+      - cdc-network
+    environment:
+      - REDIS_HOSTS=local:cdc_redis:6379:0:admin
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=admin
+    depends_on:
+      - redis
+
+networks:
+  cdc-network:
+    external: true
+
+volumes:
+  redis_data:
+    driver: local

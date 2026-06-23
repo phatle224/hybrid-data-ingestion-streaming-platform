@@ -1,0 +1,70 @@
+version: '3.8'
+
+# =============================================================================
+# Streaming ETL Consumer
+# =============================================================================
+# Replaces batch ETL scheduler with real-time streaming
+# Architecture: Debezium → Kafka (staging topics) → This Consumer → Reporting
+# Latency: < 1 second (vs 4-17 hours with batch scheduler)
+# =============================================================================
+
+services:
+  streaming-etl:
+    build:
+      context: ./services
+      dockerfile: streaming_etl/Dockerfile
+    container_name: cdc_streaming_etl
+    restart: always
+    
+    environment:
+      # Kafka Configuration
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+      CONSUMER_GROUP: staging-consumer-v1
+      STAGING_TOPIC_PREFIX: staging.insuranceWarehouse
+      
+      # MySQL Database (Staging + Reporting)
+      MYSQL_HOST: localhost
+      MYSQL_PORT: 3306
+      MYSQL_USER: synthetic_db_user
+      MYSQL_PASSWORD: REDACTED_PASSWORD
+      
+      # Redis Cache (for deduplication)
+      REDIS_HOST: cdc_redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: admin
+      REDIS_DB: 0
+      
+      # Logging
+      LOG_LEVEL: INFO
+      
+      # Timezone
+      TZ: Asia/Ho_Chi_Minh
+    
+    volumes:
+      # Persist logs outside container
+      - ./logs:/app/logs
+    
+    networks:
+      - cdc-network
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/logs/streaming_etl.log') else 1)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  cdc-network:
+    external: true

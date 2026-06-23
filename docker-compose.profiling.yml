@@ -1,0 +1,44 @@
+services:
+  profiling_consumer:
+    container_name: cdc_profiling
+    build:
+      context: ./services
+      dockerfile: profiling/Dockerfile
+    environment:
+      # Kafka Configuration
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+      CONSUMER_GROUP: profiling-consumer-v1
+      TOPIC_PREFIX: staging.insuranceWarehouse
+      
+      # Staging Database (read-only for lookups)
+      STAGING_DB_HOST: localhost
+      STAGING_DB_USER: synthetic_db_user
+      STAGING_DB_PASSWORD: REDACTED_PASSWORD
+      
+      # Reporting Database (write profiling_analysis)
+      REPORTING_DB_HOST: localhost
+      REPORTING_DB_USER: synthetic_db_user
+      REPORTING_DB_PASSWORD: REDACTED_PASSWORD
+      
+      # Logging
+      PYTHONUNBUFFERED: 1
+      LOG_LEVEL: INFO
+    
+    volumes:
+      - ./logs:/app/logs
+    
+    networks:
+      - cdc-network
+    
+    restart: always
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  cdc-network:
+    external: true

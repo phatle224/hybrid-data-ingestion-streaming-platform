@@ -1,0 +1,28 @@
+# ============================================================================
+# Docker Compose for Python Consumer
+# Includes: Python CDC Consumer Service
+# Usage: docker-compose -f docker-compose.consumer.yml up -d
+# Note: Requires Kafka infrastructure and Debezium to be running first
+# ============================================================================
+
+services:
+  python-consumer:
+    build:
+      context: ./services
+      dockerfile: cdc_consumer/Dockerfile
+    container_name: cdc_consumer
+    restart: always
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+      - MYSQL_HOST=localhost
+      - MYSQL_PORT=3306
+      - MYSQL_USER=synthetic_db_user
+      - MYSQL_PASSWORD=REDACTED_PASSWORD
+      - MYSQL_DATABASE=insuranceWarehouse
+      - TOPIC_PREFIX=source.insuranceSale
+      - LOG_LEVEL=DEBUG
+
+networks:
+  default:
+    name: cdc-network
+    external: true
