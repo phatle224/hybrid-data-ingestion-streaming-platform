@@ -1,0 +1,29 @@
+# ============================================================================
+# Docker Compose for Mock Data Generator Service
+# Usage: docker-compose -f docker-compose.generator.yml up -d --build
+# ============================================================================
+
+version: '3.8'
+
+services:
+  mock-generator:
+    build:
+      context: ./services/mock_generator
+      dockerfile: Dockerfile
+    container_name: cdc_mock_generator
+    restart: always
+    environment:
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=insuranceSale
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - cdc-network
+
+networks:
+  cdc-network:
+    name: cdc-network
+    external: true

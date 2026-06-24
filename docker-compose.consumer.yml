@@ -17,9 +17,9 @@ services:
       - DB_HOST=host.docker.internal
       - DB_PORT=5432
       - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_DATABASE=postgres
-      - TOPIC_PREFIX=source.public
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=insuranceStaging
+      - TOPIC_PREFIX=source.source
       - LOG_LEVEL=DEBUG
 
 networks:

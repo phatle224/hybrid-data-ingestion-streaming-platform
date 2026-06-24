@@ -13,8 +13,12 @@ import logging
 import time
 from typing import Any, Dict, List, Optional, Set
 
-import mysql.connector
-from mysql.connector import Error as MySQLError
+try:
+    import mysql.connector
+    from mysql.connector import Error as MySQLError
+except ImportError:
+    mysql = None
+    MySQLError = Exception
 import psycopg2
 from psycopg2 import Error as PostgreSQLError
 from psycopg2.extras import RealDictCursor
@@ -85,6 +89,8 @@ class MySQLConnectionManager:
 
     def connect(self, max_retries: int = 3, retry_delay: int = 5) -> bool:
         """Establish MySQL connection with retry."""
+        if mysql is None:
+            raise ImportError("mysql-connector-python package is not installed. Please install it to use MySQLConnectionManager.")
         for attempt in range(max_retries):
             try:
                 if self._connection and self._connection.is_connected():

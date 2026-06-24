@@ -68,22 +68,33 @@ class DebeziumTransformer:
             return None
 
         try:
-            # --- Datetime fields (epoch milliseconds → datetime) ---
+            # --- Datetime fields (epoch milliseconds/microseconds → datetime) ---
             if field_name in DATETIME_FIELDS and isinstance(value, (int, float)):
                 if value < 100000:
                     # Days since epoch (due to DATE schema mismatch)
                     return datetime(1970, 1, 1) + timedelta(days=int(value))
                 else:
-                    dt = datetime.fromtimestamp(value / 1000.0, tz=timezone.utc)
-                    # Return naive datetime for MySQL compatibility
+                    if value > 1e14:
+                        sec = value / 1000000.0
+                    elif value > 1e11:
+                        sec = value / 1000.0
+                    else:
+                        sec = value
+                    dt = datetime.fromtimestamp(sec, tz=timezone.utc)
+                    # Return naive datetime for compatibility
                     return dt.replace(tzinfo=None)
 
-            # --- Date fields (days/milliseconds/string → date) ---
+            # --- Date fields (days/milliseconds/microseconds/string → date) ---
             elif field_name in DATE_FIELDS:
                 if isinstance(value, (int, float)):
                     if value > 100000:
-                        # Likely milliseconds since epoch
-                        return datetime.fromtimestamp(value / 1000.0).date()
+                        if value > 1e14:
+                            sec = value / 1000000.0
+                        elif value > 1e11:
+                            sec = value / 1000.0
+                        else:
+                            sec = value
+                        return datetime.fromtimestamp(sec).date()
                     else:
                         # Days since epoch
                         return date(1970, 1, 1) + timedelta(days=int(value))
@@ -181,7 +192,13 @@ class DebeziumTransformer:
             return value.date()
         if isinstance(value, (int, float)):
             try:
-                return datetime.fromtimestamp(value / 1000).date() if value else None
+                if value > 1e14:
+                    sec = value / 1000000.0
+                elif value > 1e11:
+                    sec = value / 1000.0
+                else:
+                    sec = value
+                return datetime.fromtimestamp(sec).date() if value else None
             except (OSError, OverflowError, ValueError):
                 return None
         if isinstance(value, str):
@@ -209,7 +226,14 @@ class DebeziumTransformer:
                 if value < 100000:
                     # Days since epoch
                     return datetime(1970, 1, 1) + timedelta(days=int(value))
-                return datetime.fromtimestamp(value / 1000) if value else None
+                else:
+                    if value > 1e14:
+                        sec = value / 1000000.0
+                    elif value > 1e11:
+                        sec = value / 1000.0
+                    else:
+                        sec = value
+                    return datetime.fromtimestamp(sec) if value else None
             except (OSError, OverflowError, ValueError):
                 return None
         if isinstance(value, str):
