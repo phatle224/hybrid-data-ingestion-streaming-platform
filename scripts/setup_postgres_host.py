@@ -18,7 +18,7 @@ DB_PASSWORD = "${DB_PASSWORD}"
 
 # Database names
 DB_SOURCE = "insuranceSale"
-DB_STAGING = "insuranceStaging"
+DB_STAGING = "insuranceWarehouse"
 
 # SQL files to run
 SQL_SOURCE = os.path.abspath(os.path.join(os.path.dirname(__file__), "../database/00_source/create_source_schema.sql"))

@@ -56,7 +56,7 @@ def main():
     }
     
     check_db("insuranceSale", "source", source_tables, is_source=True)
-    check_db("insuranceStaging", "staging", staging_tables, is_source=False)
+    check_db("insuranceWarehouse", "staging", staging_tables, is_source=False)
 
 if __name__ == '__main__':
     main()

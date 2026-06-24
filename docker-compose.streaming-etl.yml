@@ -50,7 +50,7 @@ services:
     
     # Health check
     healthcheck:
-      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/logs/streaming_etl.log') else 1)"]
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
       interval: 60s
       timeout: 10s
       retries: 3

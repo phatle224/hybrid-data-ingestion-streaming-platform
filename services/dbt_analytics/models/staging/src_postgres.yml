@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: staging_db
+    schema: staging
+    tables:
+      - name: stgInsuranceContract
+      - name: stgInsuranceContractObject
+      - name: stgInsuranceContractObjectVehicle
+      - name: stgInsuranceContractObjectTravel
+      - name: stgInsuranceContractObjectMoto
+      - name: stgInsuranceContractObjectSocialInsurance
+      - name: stgInsuranceContractObjectMedicalInsurance
+      - name: stgInsuranceContractObjectHouse
+      - name: stgInsuranceContractObjectOffline
+      - name: stgInsuranceClaim

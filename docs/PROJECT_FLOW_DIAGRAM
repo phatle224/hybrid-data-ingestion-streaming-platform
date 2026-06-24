@@ -31,11 +31,6 @@ graph TB
         RPT_PROFILING["📊 profiling_analysis"]
     end
 
-    subgraph "📢 Event Notification"
-        EVT_PUB["🐍 Event Publisher<br/>Polls staging & reporting"]
-        RABBITMQ["🐰 RabbitMQ<br/>Exchange: affina.cdc.events"]
-        DOC_OCR["📄 Doc OCR App"]
-    end
 
     subgraph "📁 Offline Data Ingestion"
         PORTAL["🌐 CDC Portal Upload<br/>(React + FastAPI)"]
@@ -58,10 +53,6 @@ graph TB
     RPT_CONTRACT --> RPT_DB
     RPT_PROFILING --> RPT_DB
 
-    EVT_PUB -->|"poll changes"| STG_DB
-    EVT_PUB -->|"poll changes"| RPT_DB
-    EVT_PUB -->|"publish events"| RABBITMQ
-    RABBITMQ -->|"routing"| DOC_OCR
 
     EXCEL -->|"upload"| PORTAL
     PORTAL -->|"write offline data"| STG_DB
@@ -118,7 +109,7 @@ flowchart LR
 
 **Xử lý trong CDC Consumer:**
 1. **Subscribe** Kafka topics `source.insuranceSale.*`
-2. **Parse** Debezium message → extract [operation](file:///d:/affina/phase_cdc/cdc_reporting/consumer/services/event_publisher.py#108-114) (c/r/u/d) + [data](file:///d:/affina/phase_cdc/cdc_reporting/consumer/shared/debezium.py#142-151)
+2. **Parse** Debezium message → extract `operation` (c/r/u/d) + `data`
 3. **Transform** đổi format Debezium → MySQL (datetime, date fields)
 4. **Route** theo operation:
    - `c` (create) / `r` (snapshot) → **UPSERT** (INSERT ON DUPLICATE KEY UPDATE)
@@ -213,45 +204,6 @@ flowchart LR
 
 ---
 
-### 2.4. Event Publisher → RabbitMQ (Downstream Notification)
-
-```mermaid
-flowchart LR
-    subgraph "Databases"
-        STG["🗄️ insuranceWarehouse<br/>(stgClaim, stgContract)"]
-        RPT["🗄️ insuranceReporting<br/>(profiling_analysis)"]
-    end
-
-    EVT["🐍 Event Publisher<br/>(Polling every 30s)"]
-
-    subgraph "RabbitMQ (vhost: /affina)"
-        EX["📤 Exchange<br/>affina.cdc.events<br/>(topic type)"]
-        DLX["💀 Exchange<br/>affina.dlx<br/>(dead letter)"]
-        Q1["📬 doc_ocr_queue"]
-        DLQ["📬 dlx_queue"]
-    end
-
-    subgraph "Downstream Apps"
-        DOC["📄 Doc OCR Application"]
-    end
-
-    STG -->|"poll changes"| EVT
-    RPT -->|"poll rebuilds"| EVT
-    EVT -->|"publish"| EX
-    EX -->|"claim.insert<br/>claim.update<br/>contract.insert<br/>contract.update"| Q1
-    EX -->|"failed messages"| DLX
-    DLX --> DLQ
-    Q1 --> DOC
-```
-
-**Routing Keys:**
-| Routing Key | Mô tả |
-|---|---|
-| `claim.insert` | Claim mới được tạo |
-| `claim.update` | Claim được cập nhật |
-| `contract.insert` | Hợp đồng mới |
-| `contract.update` | Hợp đồng được cập nhật |
-
 ---
 
 ### 2.5. Offline Data: Excel Upload Portal
@@ -303,15 +255,11 @@ graph TB
             REDIS["Redis<br/>:6379"]
         end
 
-        subgraph "Event Bus"
-            RMQ["RabbitMQ<br/>:5672/:15672"]
-        end
 
         subgraph "Consumers (Python)"
             C1["CDC Consumer<br/>(server_consumer)"]
             C2["Streaming ETL<br/>(affina_streaming_etl)"]
-            C3["Profiling Consumer<br/>(affina_profiling_consumer)"]
-            C4["Event Publisher<br/>(affina_event_publisher)"]
+            C3["Profiling Consumer<br/>(profiling_consumer-v1)"]
         end
     end
 
@@ -320,7 +268,6 @@ graph TB
     KAFKA --> DBZ
     KAFKA --> C1 & C2 & C3
     REDIS --> C2 & C3
-    C4 --> RMQ
 ```
 
 ---
@@ -340,8 +287,6 @@ sequenceDiagram
     participant PROF as Profiling Consumer
     participant REDIS as Redis
     participant RPT as Reporting DB<br/>(insuranceReporting)
-    participant EVT as Event Publisher
-    participant RMQ as RabbitMQ
 
     Note over SRC: User tạo/sửa hợp đồng
 
@@ -372,13 +317,6 @@ sequenceDiagram
         PROF->>PROF: Calculate age, classify diagnostic
         PROF->>RPT: UPSERT to profiling_analysis
     end
-
-    Note over EVT: Polling every 30s
-
-    EVT->>STG: Poll new/updated records
-    EVT->>RPT: Poll rebuild events
-    EVT->>RMQ: Publish CDC events
-    RMQ->>RMQ: Route to doc_ocr_queue
 ```
 
 ---
@@ -392,11 +330,11 @@ sequenceDiagram
 | **CDC Consumer** | server_consumer | Route CDC events → Staging | Kafka (source.*) | insuranceWarehouse tables |
 | **Streaming ETL** | affina_streaming_etl | Transform staging → reporting | Kafka (staging.*) | insuranceReporting.contract |
 | **Profiling Consumer** | affina_profiling_consumer | Build profiling analysis | Kafka (staging.*) | insuranceReporting.profiling_analysis |
-| **Event Publisher** | affina_event_publisher | Notify downstream apps | MySQL polling | RabbitMQ events |
+
 | **CDC Portal** | frontend + backend | Upload Excel offline data | Excel files | insuranceWarehouse.stgContractObjectOffline |
 | **Kafka** | server_kafka | Message broker | Debezium events | Consumer groups |
 | **Redis** | redis | Deduplication cache | ETL/Profiling checks | Cache responses |
-| **RabbitMQ** | rabbitmq | Event bus for downstream | Publisher events | Application queues |
+
 
 ---
 

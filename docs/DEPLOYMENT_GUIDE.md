@@ -40,8 +40,6 @@ docker-compose -f docker-compose.kafka.yml up -d
 # 3. Start Debezium Connect + UI
 docker-compose -f docker-compose.debezium.yml up -d
 
-# 4. Start RabbitMQ
-docker-compose -f docker-compose.rabbitmq.yml up -d
 ```
 
 ---
@@ -108,18 +106,4 @@ docker-compose -f docker-compose.profiling.yml up -d --build
 docker logs cdc_profiling --tail 50 -f
 ```
 
----
-
-## Bước 6: Setup RabbitMQ Event Publisher
-
-```powershell
-# Setup RabbitMQ infrastructure (exchanges, queues, bindings)
-python scripts/rabbitmq_setup.py
-
-# Start event publisher
-docker-compose -f docker-compose.rabbitmq.yml up -d event_publisher
-
-# Kiểm tra logs
-docker logs cdc_event_publisher --tail 50 -f
-```
 

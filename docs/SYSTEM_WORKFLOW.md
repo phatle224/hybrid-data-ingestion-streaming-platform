@@ -2,7 +2,7 @@
 
 Tài liệu này mô tả chi tiết luồng công việc (workflow), cấu trúc kiến trúc và mối liên hệ chặt chẽ giữa hai dự án:
 1. **Portal Services** (Cổng tải lên dữ liệu Excel Offline - `services/portal_frontend` (React) + `services/portal_backend` (FastAPI))
-2. **`cdc_reporting`** (Hệ thống CDC trực tuyến và Streaming ETL - Python + Kafka + Redis + Debezium + RabbitMQ)
+2. **`cdc_reporting`** (Hệ thống CDC trực tuyến và Streaming ETL - Python + Kafka + Redis + Debezium)
 
 ---
 
@@ -42,12 +42,6 @@ graph TB
         RPT_PROFILING["profiling_analysis"]
     end
 
-    subgraph "Thông Báo Hạ Nguồn (Downstream)"
-        EVT_PUB["Event Publisher<br/>(affina_event_publisher)"]
-        RMQ["RabbitMQ Broker<br/>Exchange: affina.cdc.events"]
-        DOC_OCR["Doc OCR App"]
-    end
-
     %% Luồng Offline Excel
     EXCEL -->|"Upload"| PORTAL_FE
     PORTAL_FE -->|"API call"| PORTAL_BE
@@ -77,10 +71,6 @@ graph TB
     RPT_CONTRACT --> RPT_DB
     RPT_PROFILING --> RPT_DB
 
-    %% Luồng Event Publisher
-    STG_DB & RPT_DB -->|"Poll thay đổi"| EVT_PUB
-    EVT_PUB -->|"Publish events"| RMQ
-    RMQ -->|"Routing"| DOC_OCR
 ```
 
 ---
@@ -136,12 +126,6 @@ Dự án này chịu trách nhiệm đồng bộ dữ liệu thời gian thực 
     *   Tính toán thời gian thực các chỉ số phân tích: phân nhóm tuổi, phân loại danh mục bệnh án dựa trên mô tả chẩn đoán, map mã tỉnh thành thành tên thành phố, phân tích mối quan hệ gia đình.
     *   **UPSERT** vào bảng phân tích `reporting.profiling_analysis`.
 
-### 3.3. Downstream Notification (Event Publisher)
-*   **Event Publisher (`affina_event_publisher`)**:
-    *   Quét định kỳ các bảng dữ liệu của schema `staging` và `reporting` để phát hiện các sự kiện thêm mới hoặc cập nhật hợp đồng/bồi thường.
-    *   Đẩy thông báo vào **RabbitMQ Exchange** (`affina.cdc.events`).
-    *   Các ứng dụng hạ nguồn như **Doc OCR App** sẽ đăng ký các hàng đợi (`doc_ocr_queue`) để nhận diện và xử lý tài liệu liên quan.
-
 ---
 
 ## 4. Điểm Giao Thoa: Cơ chế Đồng bộ & Chống Trùng Lặp bằng Redis
@@ -190,4 +174,3 @@ Dự án này chịu trách nhiệm đồng bộ dữ liệu thời gian thực 
 | **Streaming ETL** | `cdc_reporting` | Hợp nhất dữ liệu chi tiết của các loại bảo hiểm thành một Wide Table báo cáo. | Kafka `staging.*` topics | Bảng `reporting.contract` |
 | **Profiling Consumer**| `cdc_reporting` | Tính toán các chỉ số phân tích người dùng, hồ sơ bệnh án thời gian thực. | Kafka `staging.*` topics | Bảng `reporting.profiling_analysis` |
 | **Redis Cache** | `cdc_reporting` | Lưu trữ bộ khóa 7 Business Keys phục vụ kiểm tra trùng lặp thời gian thực O(1). | Cache ghi từ `redis_cache_builder.py` | Kết quả kiểm tra của Portal BE |
-| **Event Publisher** | `cdc_reporting` | Phát hiện sự thay đổi và thông báo cho các dịch vụ bên ngoài (Doc OCR). | Thay đổi trên DB Staging / Reporting | RabbitMQ Events |

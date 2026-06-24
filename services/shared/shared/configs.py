@@ -154,29 +154,6 @@ class RedisConfig(BaseConfig):
         }
 
 
-class RabbitMQConfig(BaseConfig):
-    """RabbitMQ configuration."""
-
-    def __init__(
-        self,
-        host: str = None,
-        port: int = None,
-        user: str = None,
-        password: str = None,
-        vhost: str = None,
-    ):
-        super().__init__()
-        self._config = {
-            'host': host or self.env('RABBITMQ_HOST', 'localhost'),
-            'port': port or self.env('RABBITMQ_PORT', 5672, int),
-            'user': user or self.env('RABBITMQ_USER', 'admin'),
-            'password': password or self.env('RABBITMQ_PASS', 'admin'),
-            'vhost': vhost or self.env('RABBITMQ_VHOST', '/affina'),
-            'heartbeat': self.env('RABBITMQ_HEARTBEAT', 600, int),
-            'blocked_connection_timeout': self.env('RABBITMQ_BLOCKED_TIMEOUT', 300, int),
-        }
-
-
 class PostgreSQLConfig(BaseConfig):
     """
     PostgreSQL database configuration.

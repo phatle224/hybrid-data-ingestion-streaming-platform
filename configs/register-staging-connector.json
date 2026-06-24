@@ -7,7 +7,7 @@
     "database.port": "5432",
     "database.user": "postgres",
     "database.password": "${DB_PASSWORD}",
-    "database.dbname": "insuranceStaging",
+    "database.dbname": "insuranceWarehouse",
     "topic.prefix": "staging",
     "schema.include.list": "staging",
     "table.include.list": "staging.stgInsuranceContract,staging.stgInsuranceContractObject,staging.stgInsuranceContractObjectVehicle,staging.stgInsuranceContractObjectTravel,staging.stgInsuranceContractObjectMoto,staging.stgInsuranceContractObjectSocialInsurance,staging.stgInsuranceContractObjectMedicalInsurance,staging.stgInsuranceContractObjectHouse,staging.stgInsuranceContractObjectOffline,staging.stgInsuranceClaim",

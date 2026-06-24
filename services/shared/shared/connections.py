@@ -1,12 +1,11 @@
 """
-Connection managers for MySQL, Kafka, Redis, and RabbitMQ.
+Connection managers for MySQL, Kafka, and Redis.
 Provides retry logic, auto-reconnection, and resource cleanup.
 
 Following reporting-main patterns:
 - CConns → MySQLConnectionManager
 - KafkaConfig → KafkaConsumerFactory
 - RedisClusterConnection → RedisConnectionManager
-- RabbitMQ → RabbitMQConnectionManager
 """
 import json
 import logging
@@ -24,7 +23,6 @@ from psycopg2 import Error as PostgreSQLError
 from psycopg2.extras import RealDictCursor
 from kafka import KafkaConsumer
 import redis
-import pika
 
 logger = logging.getLogger(__name__)
 
@@ -569,132 +567,3 @@ class RedisConnectionManager:
         if self._client:
             self._client.close()
             logger.info("Redis connection closed")
-
-
-# =============================================================================
-# RabbitMQ Connection Manager
-# =============================================================================
-
-class RabbitMQConnectionManager:
-    """
-    RabbitMQ connection manager with retry logic.
-    Inspired by reporting-main RabbitMQ + RabbitMQProCon patterns.
-
-    Usage:
-        rmq = RabbitMQConnectionManager(config)
-        rmq.connect()
-        rmq.publish('exchange', 'routing.key', {'data': 'value'})
-        rmq.close()
-    """
-
-    def __init__(self, config: Dict[str, Any]):
-        self._config = config
-        self._connection = None
-        self._channel = None
-
-    @property
-    def channel(self):
-        return self._channel
-
-    def connect(self, max_retries: int = 3, retry_delay: int = 5) -> bool:
-        """Connect to RabbitMQ with retry."""
-        for attempt in range(max_retries):
-            try:
-                if self._connection and not self._connection.is_closed:
-                    self._connection.close()
-
-                credentials = pika.PlainCredentials(
-                    self._config['user'], self._config['password']
-                )
-                parameters = pika.ConnectionParameters(
-                    host=self._config['host'],
-                    port=self._config['port'],
-                    virtual_host=self._config['vhost'],
-                    credentials=credentials,
-                    heartbeat=self._config.get('heartbeat', 600),
-                    blocked_connection_timeout=self._config.get(
-                        'blocked_connection_timeout', 300
-                    ),
-                )
-                self._connection = pika.BlockingConnection(parameters)
-                self._channel = self._connection.channel()
-                logger.info("Connected to RabbitMQ: %s", self._config['host'])
-                return True
-            except Exception as e:
-                logger.error(
-                    "RabbitMQ connection failed (attempt %d/%d): %s",
-                    attempt + 1, max_retries, e
-                )
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-        return False
-
-    def ensure_connected(self) -> bool:
-        """Ensure connection and channel are open."""
-        try:
-            if (self._connection is None or self._connection.is_closed or
-                    self._channel is None or self._channel.is_closed):
-                logger.warning("RabbitMQ connection/channel not ready, reconnecting...")
-                return self.connect()
-            return True
-        except Exception as e:
-            logger.error("Failed to ensure RabbitMQ connection: %s", e)
-            return False
-
-    def publish(
-        self,
-        exchange: str,
-        routing_key: str,
-        message: Dict,
-        headers: Dict = None,
-        max_retries: int = 3,
-    ) -> bool:
-        """Publish message to exchange with retry logic."""
-        for attempt in range(max_retries):
-            try:
-                if not self.ensure_connected():
-                    time.sleep(1)
-                    continue
-
-                body = json.dumps(message, default=str)
-                properties = pika.BasicProperties(
-                    delivery_mode=2,  # Persistent
-                    content_type='application/json',
-                    timestamp=int(time.time()),
-                    headers=headers or {},
-                )
-
-                self._channel.basic_publish(
-                    exchange=exchange,
-                    routing_key=routing_key,
-                    body=body,
-                    properties=properties,
-                )
-                logger.info(
-                    "[PUBLISHED] %s | ID: %s",
-                    routing_key, message.get('record_id')
-                )
-                return True
-
-            except (pika.exceptions.ChannelClosedByBroker,
-                    pika.exceptions.ChannelWrongStateError,
-                    pika.exceptions.StreamLostError,
-                    pika.exceptions.AMQPConnectionError) as e:
-                logger.error("RabbitMQ error for %s: %s", routing_key, e)
-                self._connection = None
-                self._channel = None
-                if attempt < max_retries - 1:
-                    time.sleep(2)
-
-            except Exception as e:
-                logger.error("Publish error for %s: %s", routing_key, e)
-                return False
-
-        logger.error("Max retries reached for %s", routing_key)
-        return False
-
-    def close(self):
-        """Close RabbitMQ connection."""
-        if self._connection and not self._connection.is_closed:
-            self._connection.close()
-            logger.info("RabbitMQ connection closed")

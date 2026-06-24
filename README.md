@@ -47,12 +47,6 @@ flowchart TB
         PROF_TAB["📊 Profiling Table<br/>(profiling_analysis)"]
     end
 
-    subgraph "Hạ Nguồn (Downstream Services)"
-        EVT_PUB["🐍 Event Publisher<br/>(Trigger Monitor)"]
-        RMQ{{"🐰 RabbitMQ Exchange<br/>(affina.cdc.events)"}}
-        OCR_APP["📄 Doc OCR App"]
-    end
-
     %% Kênh Online
     SRC_DB -->|MySQL Binlog| DBZ_SRC
     DBZ_SRC --> KF_SRC
@@ -78,11 +72,6 @@ flowchart TB
     
     WIDE_TAB --> RPT_DB
     PROF_TAB --> RPT_DB
-
-    %% Event Publisher
-    STG_DB & RPT_DB -->|Poll changes| EVT_PUB
-    EVT_PUB -->|Publish events| RMQ
-    RMQ -->|Notify| OCR_APP
 ```
 
 ---
@@ -101,7 +90,6 @@ hybrid-data-ingestion-platform/
 │   └── SYSTEM_WORKFLOW.md       # Sơ đồ và logic nghiệp vụ tổng thể
 ├── services/                    # TẤT CẢ các microservice chạy trong hệ thống
 │   ├── cdc_consumer/            # Consumer đồng bộ DB Source -> DB Staging
-│   ├── event_publisher/         # Dịch vụ thông báo thay đổi qua RabbitMQ
 │   ├── profiling/               # Consumer phân tích hành vi khách hàng real-time
 │   ├── shared/                  # Thư viện Python dùng chung (logger, db connection)
 │   ├── streaming_etl/           # Consumer đồng bộ DB Staging -> DB Reporting
@@ -109,9 +97,8 @@ hybrid-data-ingestion-platform/
 │   └── portal_frontend/         # React + TypeScript Frontend cho người dùng
 ├── docker-compose.kafka.yml     # Quản lý Zookeeper, Kafka và Kafka-UI
 ├── docker-compose.redis.yml     # Quản lý Redis và Redis Commander (UI)
-├── docker-compose.rabbitmq.yml  # Quản lý RabbitMQ và Management Console
 ├── docker-compose.debezium.yml  # Quản lý Debezium Connect và Debezium-UI
-├── docker-compose.consumer.yml  # Quản lý CDC Consumer & Event Publisher
+├── docker-compose.consumer.yml  # Quản lý CDC Consumer
 ├── docker-compose.streaming-etl.yml # Quản lý Streaming ETL Consumer
 ├── docker-compose.profiling.yml # Quản lý Profiling Consumer
 ├── docker-compose.portal.yml    # Quản lý Portal Frontend & Backend
@@ -187,9 +174,6 @@ docker compose -f docker-compose.kafka.yml up -d
 
 # Khởi chạy Debezium Connect & UI (Debezium: 8083, UI: 8084)
 docker compose -f docker-compose.debezium.yml up -d
-
-# Khởi chạy RabbitMQ (RabbitMQ: 5672, Management: 15672)
-docker compose -f docker-compose.rabbitmq.yml up -d
 ```
 
 ---
@@ -212,7 +196,7 @@ Invoke-RestMethod -Uri "http://localhost:8083/connectors" `
 
 ---
 
-### Bước 5: Triển Khai các Consumers và Event Publisher
+### Bước 5: Triển Khai các Consumers
 Khởi động toàn bộ luồng xử lý và đồng bộ dữ liệu tự động:
 ```powershell
 # Khởi chạy CDC Consumer (Source -> Staging)
@@ -223,9 +207,6 @@ docker compose -f docker-compose.streaming-etl.yml up -d --build
 
 # Khởi chạy Profiling Consumer (Tính toán chỉ số phân tích real-time)
 docker compose -f docker-compose.profiling.yml up -d --build
-
-# Khởi chạy Event Publisher (Push sự thay đổi sang RabbitMQ)
-docker compose -f docker-compose.consumer.yml up -d event_publisher
 ```
 
 ---
@@ -256,4 +237,3 @@ docker exec -it affina_streaming_etl python redis_cache_builder.py
 *   **Trực quan hóa Topic Kafka**: Truy cập [http://localhost:8080](http://localhost:8080)
 *   **Trực quan hóa Debezium Connectors**: Truy cập [http://localhost:8084](http://localhost:8084)
 *   **Quản lý Redis Keys**: Truy cập [http://localhost:8081](http://localhost:8081)
-*   **Quản lý Hàng đợi RabbitMQ**: Truy cập [http://localhost:15672](http://localhost:15672) (User: `guest`, Password: `guest`)

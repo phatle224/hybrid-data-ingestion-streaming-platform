@@ -18,6 +18,6 @@ COPY streaming_etl/src/ .
 RUN mkdir -p /app/logs
 
 HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
-    CMD python -c "import os; exit(0 if os.path.exists('/app/logs/streaming_etl.log') else 1)"
+    CMD python -c "import sys; sys.exit(0)"
 
-CMD ["python", "streaming_etl_consumer.py"]
+CMD ["python", "-c", "import time, sys; print('Streaming ETL consumer replaced by dbt. Container kept alive for running tools.'); sys.stdout.flush(); time.sleep(99999999)"]
