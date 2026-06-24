@@ -25,10 +25,9 @@ models:
     intermediate:
       +materialized: view
       +schema: intermediate
-    marts:
-      warehouse:
-        +materialized: table
-        +schema: warehouse
-      mart:
-        +materialized: table
-        +schema: mart
+    warehouse:
+      +materialized: incremental
+      +schema: warehouse
+    mart:
+      +materialized: incremental
+      +schema: mart

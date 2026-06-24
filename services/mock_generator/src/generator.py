@@ -538,7 +538,7 @@ def main():
             else:
                 update_random_claim(conn)
                 
-            sleep_time = random.uniform(5.0, 10.0)
+            sleep_time = random.uniform(55.0, 65.0)
             print(f"Sleeping for {sleep_time:.2f} seconds...")
             time.sleep(sleep_time)
             
