@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Profiling Streaming Consumer - CDC Stream → profiling_analysis
-===============================================================
+Profiling Streaming Consumer - CDC Stream → profiling_analysis on PostgreSQL
+=============================================================================
 Build profiling_analysis table from staging CDC events (real-time).
 
 Architecture:
-    Debezium → Kafka → This Consumer → profiling_analysis
+    Debezium → Kafka → This Consumer → PostgreSQL profiling_analysis
 
 Replaces trigger-based approach with streaming consumer.
 
@@ -19,8 +19,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from decimal import Decimal
 
 from shared.logger import create_logger, configure_shared_loggers
-from shared.configs import MySQLConfig, KafkaConfig
-from shared.connections import MySQLConnectionManager
+from shared.configs import PostgreSQLConfig, KafkaConfig
+from shared.connections import PostgreSQLConnectionManager
 from shared.debezium import DebeziumTransformer
 from shared.query_builder import SQLQueryBuilder
 from shared.base_consumer import BaseKafkaConsumer
@@ -69,7 +69,6 @@ RELATIONSHIP_MAP = {
 class DiagnosticClassifier:
     """Classifies medical diagnostic text into predefined categories."""
 
-    # (category_name, keywords)
     CATEGORIES = [
         ('Thai sản', ['thai', 'sản khoa', 'chửa ngoài tử cung']),
         ('Nha khoa', ['răng', 'nướu', 'nha chu', 'lợi', 'chỉnh nha']),
@@ -162,7 +161,6 @@ class ProfilingRecordBuilder:
         contract_object_info: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Build a complete profiling_analysis record."""
-        # Parse dates using shared transformer
         people_dob = DebeziumTransformer.to_date(contract_object_info.get('peopleDob'))
         contract_start_date = DebeziumTransformer.to_date(contract_info.get('contractStartDate'))
 
@@ -174,7 +172,6 @@ class ProfilingRecordBuilder:
             claim_data.get('hospitalDischargeDate')
         )
 
-        # Derived fields
         age = AgeGroupCalculator.get_age(people_dob)
         age_group = AgeGroupCalculator.get_group(people_dob)
 
@@ -182,14 +179,12 @@ class ProfilingRecordBuilder:
         if contract_start_date and claim_start_date:
             days_from_contract_to_claim = (claim_start_date - contract_start_date).days
 
-        # Compensation rate
         amount_claim = cls._to_float(claim_data.get('amountClaim', 0))
         compensation_amount = cls._to_float(claim_data.get('compensationAmount', 0))
         compensation_rate = (
             (compensation_amount / amount_claim * 100) if amount_claim > 0 else 0
         )
 
-        # Mapped lookups
         relationship_name = RELATIONSHIP_MAP.get(
             contract_object_info.get('peopleRelationship'), 'Khác'
         )
@@ -233,8 +228,8 @@ class ProfilingRecordBuilder:
             'comp_prog_name': contract_object_info.get('programName'),
         }
 
-    @staticmethod
-    def _to_float(value) -> float:
+    @classmethod
+    def _to_float(cls, value) -> float:
         try:
             return float(value) if value else 0
         except (ValueError, TypeError):
@@ -247,9 +242,9 @@ class ProfilingRecordBuilder:
 
 class ProfilingConsumer(BaseKafkaConsumer):
     """
-    Streaming Consumer for profiling_analysis.
+    Streaming Consumer for profiling_analysis on PostgreSQL.
 
-    Processes CDC events from stgClaim, stgContract, stgContractObject
+    Processes CDC events from stgInsuranceClaim, stgInsuranceContract, stgInsuranceContractObject*
     to build and maintain the profiling_analysis table in real-time.
 
     Replaces database triggers with event-driven processing.
@@ -257,58 +252,37 @@ class ProfilingConsumer(BaseKafkaConsumer):
 
     def __init__(self):
         # ── Configuration ────────────────────────────────────
-        topic_prefix = os.getenv('TOPIC_PREFIX', 'staging.affina_staging')
+        topic_prefix = os.getenv('TOPIC_PREFIX', 'staging')
 
-        # BUG FIX: subscribe to ALL contract object topics so that changes in
-        # VEHICLE, MOTO, TRAVEL, SOCIAL, MEDICAL, HOUSE also trigger profiling refresh.
-        # The message routing in process_message() already handles them via
-        # the 'stgContractObject' in topic check.
         self._topics = [
-            f'{topic_prefix}.stgClaim',
-            f'{topic_prefix}.stgContract',
-            f'{topic_prefix}.stgContractObject',
-            f'{topic_prefix}.stgContractObjectVehicle',
-            f'{topic_prefix}.stgContractObjectMoto',
-            f'{topic_prefix}.stgContractObjectTravel',
-            f'{topic_prefix}.stgContractObjectSocialInsurance',
-            f'{topic_prefix}.stgContractObjectMedicalInsurance',
-            f'{topic_prefix}.stgContractObjectHouse',
+            f'{topic_prefix}.stgInsuranceClaim',
+            f'{topic_prefix}.stgInsuranceContract',
+            f'{topic_prefix}.stgInsuranceContractObject',
+            f'{topic_prefix}.stgInsuranceContractObjectVehicle',
+            f'{topic_prefix}.stgInsuranceContractObjectMoto',
+            f'{topic_prefix}.stgInsuranceContractObjectTravel',
+            f'{topic_prefix}.stgInsuranceContractObjectSocialInsurance',
+            f'{topic_prefix}.stgInsuranceContractObjectMedicalInsurance',
+            f'{topic_prefix}.stgInsuranceContractObjectHouse',
         ]
 
-        self._staging_config = MySQLConfig(
-            host_env='STAGING_DB_HOST',
-            user_env='STAGING_DB_USER',
-            password_env='STAGING_DB_PASSWORD',
-            database='affina_staging',
-            charset='utf8mb4',
-            autocommit=True,   # FIX: default autocommit=False → REPEATABLE READ giữ snapshot
-                               # từ lần SELECT đầu tiên, làm ẩn stgContract/stgContractObject
-                               # mới commit → "Missing contract" khi INSERT.
-                               # autocommit=True = mỗi SELECT thấy data mới nhất.
-        ).get_config()
-
-        self._reporting_config = MySQLConfig(
-            host_env='REPORTING_DB_HOST',
-            user_env='REPORTING_DB_USER',
-            password_env='REPORTING_DB_PASSWORD',
-            database='affina_reporting',
-            charset='utf8mb4',
-        ).get_config()
+        self._staging_config = PostgreSQLConfig(database_env='DB_DATABASE').get_config()
+        self._reporting_config = PostgreSQLConfig(database_env='DB_DATABASE').get_config()
 
         self._kafka_config = KafkaConfig(
             group_id=os.getenv('CONSUMER_GROUP', 'profiling-consumer-v1'),
         ).get_config()
 
         # Logger
-        log_file = '/app/logs/profiling_consumer.log'
+        log_file = '/app/logs/profiling_consumer.log' if os.path.exists('/app') else './profiling_consumer.log'
         os.makedirs(os.path.dirname(log_file), exist_ok=True)
         _logger = create_logger('ProfilingConsumer', log_file)
         configure_shared_loggers(log_file)
         super().__init__('Profiling Consumer', _logger)
 
         # ── Connections ──────────────────────────────────────
-        self._staging_db = MySQLConnectionManager(self._staging_config, 'staging')
-        self._reporting_db = MySQLConnectionManager(self._reporting_config, 'reporting')
+        self._staging_db = PostgreSQLConnectionManager(self._staging_config, 'staging')
+        self._reporting_db = PostgreSQLConnectionManager(self._reporting_config, 'reporting')
 
     # ─── BaseKafkaConsumer Implementation ────────────────────
 
@@ -361,11 +335,11 @@ class ProfilingConsumer(BaseKafkaConsumer):
             self._stats['skipped'] += 1
             return
 
-        if 'stgClaim' in topic:
+        if 'stgInsuranceClaim' in topic:
             self._process_claim_event(op, data)
-        elif 'stgContract' in topic and 'stgContractObject' not in topic:
+        elif 'stgInsuranceContract' in topic and 'stgInsuranceContractObject' not in topic:
             self._process_contract_event(op, data)
-        elif 'stgContractObject' in topic:
+        elif 'stgInsuranceContractObject' in topic:
             self._process_contract_object_event(op, data)
         else:
             self.logger.warning("Unknown topic: %s", topic)
@@ -374,7 +348,7 @@ class ProfilingConsumer(BaseKafkaConsumer):
     # ─── Claim Event Handler ─────────────────────────────────
 
     def _process_claim_event(self, op: str, data: Dict[str, Any]):
-        """Process stgClaim CDC event (replaces trigger logic)."""
+        """Process stgInsuranceClaim CDC event (replaces trigger logic)."""
         claim_id = data.get('id')
         contract_id = data.get('contractId')
         contract_object_id = data.get('contractObjectId')
@@ -393,7 +367,6 @@ class ProfilingConsumer(BaseKafkaConsumer):
             self.logger.info("[CLAIM] Deleted profiling for claim %s", claim_id)
             return
 
-        # INSERT or UPDATE: fetch related data and upsert
         contract_info = self._get_contract_info(contract_id)
         contract_object_info = self._get_contract_object_info(contract_object_id)
 
@@ -406,7 +379,6 @@ class ProfilingConsumer(BaseKafkaConsumer):
             self._stats['skipped'] += 1
             return
 
-        # Build and upsert profiling record
         record = ProfilingRecordBuilder.build(data, contract_info, contract_object_info)
 
         if self._upsert_profiling_record(record):
@@ -416,7 +388,7 @@ class ProfilingConsumer(BaseKafkaConsumer):
                 self._stats['updates'] += 1
             self.logger.info("[CLAIM] Profiled claim %s (%s)", claim_id, op)
         else:
-            self._stats['errors'] += 1
+            self._stats['errors'] = self._stats.get('errors', 0) + 1
             self.logger.error("[CLAIM] Failed to profile claim %s", claim_id)
 
         self._stats['claim_events'] += 1
@@ -424,26 +396,22 @@ class ProfilingConsumer(BaseKafkaConsumer):
     # ─── Contract Event Handler ──────────────────────────────
 
     def _process_contract_event(self, op: str, data: Dict[str, Any]):
-        """Process stgContract CDC event. Refreshes related profiling records."""
+        """Process stgInsuranceContract CDC event. Refreshes related profiling records."""
         contract_id = data.get('contractId')
         if not contract_id:
             return
 
-        # BUG FIX: also refresh on insert ('c') and snapshot ('r'), not only update ('u')
-        # This covers the case where a contract arrives after its claims were already processed
         if op in ('u', 'c', 'r'):
             self._refresh_profiling_for_contract(contract_id)
 
         self._stats['contract_events'] += 1
 
     def _process_contract_object_event(self, op: str, data: Dict[str, Any]):
-        """Process stgContractObject CDC event. Refreshes related profiling records."""
-        # BUG FIX: MOTO/TRAVEL/HOUSE use 'id' as PK, not 'contractObjectId'
+        """Process stgInsuranceContractObject* CDC event. Refreshes related profiling records."""
         contract_object_id = data.get('contractObjectId') or data.get('id')
         if not contract_object_id:
             return
 
-        # BUG FIX: also refresh on insert ('c') and snapshot ('r'), not only update ('u')
         if op in ('u', 'c', 'r'):
             self._refresh_profiling_for_contract_object(contract_object_id)
 
@@ -454,74 +422,69 @@ class ProfilingConsumer(BaseKafkaConsumer):
     def _get_contract_info(self, contract_id: str) -> Optional[Dict[str, Any]]:
         """Lookup contract master info from staging DB."""
         return self._staging_db.fetch_one(
-            "SELECT contractStartDate, customerType FROM stgContract WHERE contractId = %s LIMIT 1",
+            'SELECT "contractStartDate", "customerType" FROM "stgInsuranceContract" WHERE "contractId" = %s LIMIT 1',
             [contract_id]
         )
 
     def _get_contract_object_info(self, contract_object_id: str) -> Optional[Dict[str, Any]]:
         """
         Lookup contract object info from staging DB.
-
-        FIX 3.10: Replaced 7 sequential queries with a single UNION ALL query.
-        Previously tried each of 7 tables one by one (up to 7 SELECT queries per call).
-        Now sends 1 query that searches all tables at once, returning the first match.
         """
         _UNION_QUERY = """
-            SELECT peopleDob, peopleRelationship, peopleGender, peopleCityCode,
-                   peopleName, peoplePhone, peopleEmail, peopleAddress,
-                   programId, programName
-            FROM stgContractObject WHERE contractObjectId = %s
+            SELECT "peopleDob", "peopleRelationship", "peopleGender", "peopleCityCode",
+                   "peopleName", "peoplePhone", "peopleEmail", "peopleAddress",
+                   "programId", "programName"
+            FROM "stgInsuranceContractObject" WHERE "contractObjectId" = %s
           UNION ALL
-            SELECT peopleDob, peopleRelationship, peopleGender, peopleCityCode,
-                   peopleName, peoplePhone, peopleEmail, peopleAddress,
-                   programId, programName
-            FROM stgContractObjectVehicle WHERE contractObjectId = %s
+            SELECT "peopleDob", "peopleRelationship", "peopleGender", "peopleCityCode",
+                   "peopleName", "peoplePhone", "peopleEmail", "peopleAddress",
+                   "programId", "programName"
+            FROM "stgInsuranceContractObjectVehicle" WHERE "contractObjectId" = %s
           UNION ALL
-            SELECT peopleDob, peopleRelationship, peopleGender, peopleCityCode,
-                   peopleName, peoplePhone, peopleEmail, peopleAddress,
-                   programId, programName
-            FROM stgContractObjectSocialInsurance WHERE contractObjectId = %s
+            SELECT "peopleDob", "peopleRelationship", "peopleGender", "peopleCityCode",
+                   "peopleName", "peoplePhone", "peopleEmail", "peopleAddress",
+                   "programId", "programName"
+            FROM "stgInsuranceContractObjectSocialInsurance" WHERE "contractObjectId" = %s
           UNION ALL
-            SELECT peopleDob, peopleRelationship, peopleGender, peopleCityCode,
-                   peopleName, peoplePhone, peopleEmail, peopleAddress,
-                   programId, programName
-            FROM stgContractObjectMedicalInsurance WHERE contractObjectId = %s
+            SELECT "peopleDob", "peopleRelationship", "peopleGender", "peopleCityCode",
+                   "peopleName", "peoplePhone", "peopleEmail", "peopleAddress",
+                   "programId", "programName"
+            FROM "stgInsuranceContractObjectMedicalInsurance" WHERE "contractObjectId" = %s
           UNION ALL
-            SELECT dob       AS peopleDob,
-                   NULL      AS peopleRelationship,
-                   gender    AS peopleGender,
-                   cityCode  AS peopleCityCode,
-                   name      AS peopleName,
-                   phone     AS peoplePhone,
-                   email     AS peopleEmail,
-                   address   AS peopleAddress,
-                   programId, programName
-            FROM stgContractObjectMoto WHERE id = %s
+            SELECT "dob"       AS "peopleDob",
+                   NULL        AS "peopleRelationship",
+                   "gender"    AS "peopleGender",
+                   "cityCode"  AS "peopleCityCode",
+                   "name"      AS "peopleName",
+                   "phone"     AS "peoplePhone",
+                   "email"     AS "peopleEmail",
+                   "address"   AS "peopleAddress",
+                   "programId", "programName"
+            FROM "stgInsuranceContractObjectMoto" WHERE "id" = %s
           UNION ALL
-            SELECT dob       AS peopleDob,
-                   NULL      AS peopleRelationship,
-                   gender    AS peopleGender,
-                   cityCode  AS peopleCityCode,
-                   name      AS peopleName,
-                   phone     AS peoplePhone,
-                   email     AS peopleEmail,
-                   address   AS peopleAddress,
-                   programId, programName
-            FROM stgContractObjectTravel WHERE id = %s
+            SELECT "dob"       AS "peopleDob",
+                   NULL        AS "peopleRelationship",
+                   "gender"    AS "peopleGender",
+                   "cityCode"  AS "peopleCityCode",
+                   "name"      AS "peopleName",
+                   "phone"     AS "peoplePhone",
+                   "email"     AS "peopleEmail",
+                   "address"   AS "peopleAddress",
+                   "programId", "programName"
+            FROM "stgInsuranceContractObjectTravel" WHERE "id" = %s
           UNION ALL
-            SELECT dob       AS peopleDob,
-                   NULL      AS peopleRelationship,
-                   gender    AS peopleGender,
-                   cityCode  AS peopleCityCode,
-                   name      AS peopleName,
-                   phone     AS peoplePhone,
-                   email     AS peopleEmail,
-                   address   AS peopleAddress,
-                   programId, programName
-            FROM stgContractObjectHouse WHERE id = %s
+            SELECT "dob"       AS "peopleDob",
+                   NULL        AS "peopleRelationship",
+                   "gender"    AS "peopleGender",
+                   "cityCode"  AS "peopleCityCode",
+                   "name"      AS "peopleName",
+                   "phone"     AS "peoplePhone",
+                   "email"     AS "peopleEmail",
+                   "address"   AS "peopleAddress",
+                   "programId", "programName"
+            FROM "stgInsuranceContractObjectHouse" WHERE "id" = %s
           LIMIT 1
         """
-        # Pass contract_object_id 7 times (one per UNION ALL branch)
         return self._staging_db.fetch_one(
             _UNION_QUERY,
             [contract_object_id] * 7
@@ -532,7 +495,7 @@ class ProfilingConsumer(BaseKafkaConsumer):
     def _upsert_profiling_record(self, record: Dict[str, Any]) -> bool:
         """Insert or update profiling_analysis record."""
         query, values = SQLQueryBuilder.build_reporting_upsert(
-            table='affina_reporting.profiling_analysis',
+            table='reporting.profiling_analysis',
             data=record,
             key_fields=['id'],
             exclude_fields=[],
@@ -549,7 +512,7 @@ class ProfilingConsumer(BaseKafkaConsumer):
         """Delete profiling_analysis record by claim id."""
         try:
             self._reporting_db.execute(
-                "DELETE FROM affina_reporting.profiling_analysis WHERE id = %s",
+                'DELETE FROM "reporting"."profiling_analysis" WHERE "id" = %s',
                 [claim_id]
             )
             return True
@@ -561,19 +524,14 @@ class ProfilingConsumer(BaseKafkaConsumer):
     def _refresh_profiling_for_contract(self, contract_id: str):
         """
         Refresh all profiling records related to a contract.
-
-        FIX 3.9: Batch approach — pre-fetch contract info once (shared by all claims),
-        then batch-fetch all distinct contractObjectIds and their info in one pass,
-        instead of doing 2+ queries per claim (N+1 pattern).
         """
         claims = self._staging_db.fetch_all(
-            "SELECT * FROM stgClaim WHERE contractId = %s",
+            'SELECT * FROM "stgInsuranceClaim" WHERE "contractId" = %s',
             [contract_id]
         )
         if not claims:
             return
 
-        # Pre-fetch contract info once (shared across all claims)
         contract_info = self._get_contract_info(contract_id)
         if not contract_info:
             self.logger.warning(
@@ -582,7 +540,6 @@ class ProfilingConsumer(BaseKafkaConsumer):
             )
             return
 
-        # Collect distinct contractObjectIds and batch-fetch their info
         co_ids = list({c.get('contractObjectId') for c in claims if c.get('contractObjectId')})
         co_info_map: Dict[str, Dict] = {}
         for co_id in co_ids:
@@ -590,7 +547,6 @@ class ProfilingConsumer(BaseKafkaConsumer):
             if info:
                 co_info_map[co_id] = info
 
-        # Now build records without any extra DB queries
         for claim in claims:
             co_id = claim.get('contractObjectId')
             co_info = co_info_map.get(co_id)
@@ -600,7 +556,7 @@ class ProfilingConsumer(BaseKafkaConsumer):
             if self._upsert_profiling_record(record):
                 self._stats['updates'] += 1
             else:
-                self._stats['errors'] += 1
+                self._stats['errors'] = self._stats.get('errors', 0) + 1
 
         self.logger.debug(
             "Refreshed %d profiling records for contract %s",
@@ -610,22 +566,18 @@ class ProfilingConsumer(BaseKafkaConsumer):
     def _refresh_profiling_for_contract_object(self, contract_object_id: str):
         """
         Refresh all profiling records related to a contract object.
-
-        FIX 3.9: Pre-fetch contract object info once (shared by all claims).
         """
         claims = self._staging_db.fetch_all(
-            "SELECT * FROM stgClaim WHERE contractObjectId = %s",
+            'SELECT * FROM "stgInsuranceClaim" WHERE "contractObjectId" = %s',
             [contract_object_id]
         )
         if not claims:
             return
 
-        # Pre-fetch contract object info once
         co_info = self._get_contract_object_info(contract_object_id)
         if not co_info:
             return
 
-        # Group by contractId to avoid repeated contract lookups
         contract_info_cache: Dict[str, Optional[Dict]] = {}
         for claim in claims:
             cid = claim.get('contractId')
@@ -638,7 +590,7 @@ class ProfilingConsumer(BaseKafkaConsumer):
             if self._upsert_profiling_record(record):
                 self._stats['updates'] += 1
             else:
-                self._stats['errors'] += 1
+                self._stats['errors'] = self._stats.get('errors', 0) + 1
 
         self.logger.debug(
             "Refreshed %d profiling records for contract_object %s",

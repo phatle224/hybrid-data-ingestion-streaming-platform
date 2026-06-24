@@ -14,12 +14,12 @@ services:
     restart: always
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
-      - MYSQL_HOST=172.16.10.32
-      - MYSQL_PORT=3306
-      - MYSQL_USER=aff_admin
-      - MYSQL_PASSWORD=affina_poOB7G9A51
-      - MYSQL_DATABASE=affina_staging
-      - TOPIC_PREFIX=source.affina_sale
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE=postgres
+      - TOPIC_PREFIX=source.public
       - LOG_LEVEL=DEBUG
 
 networks:

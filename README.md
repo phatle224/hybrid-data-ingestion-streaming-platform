@@ -30,19 +30,19 @@ flowchart TB
     end
 
     subgraph "Vùng Đệm & Chuẩn Hóa (Staging Layer)"
-        STG_DB[("Staging DB<br/>(affina_staging)")]
+        STG_DB[("Staging DB<br/>(staging schema)")]
         REDIS_CACHE[("🔴 Redis Cache<br/>(7 Business Keys)")]
     end
 
     subgraph "Luồng Streaming ETL & Phân Tích"
-        DBZ_STG["⚡ Debezium Staging<br/>(Binlog Reader)"]
-        KF_STG{{"📨 Kafka Topics<br/>(staging.affina_staging.*)"}}
+        DBZ_STG["⚡ Debezium Staging<br/>(WAL Reader)"]
+        KF_STG{{"📨 Kafka Topics<br/>(staging.staging.*)"}}
         ETL_CONS["🐍 Streaming ETL Consumer<br/>(Wide Table Builder)"]
         PROF_CONS["🐍 Profiling Consumer<br/>(Real-time Analysis)"]
     end
 
     subgraph "Kho Dữ Liệu Báo Cáo (Reporting Layer)"
-        RPT_DB[("Reporting DB<br/>(affina_reporting)")]
+        RPT_DB[("Reporting DB<br/>(reporting schema)")]
         WIDE_TAB["📊 Wide Table<br/>(contract)"]
         PROF_TAB["📊 Profiling Table<br/>(profiling_analysis)"]
     end

@@ -7,7 +7,6 @@ from configs.mappings.vehicle_mapping import VehicleMapping
 from configs.mappings.moto_mapping import MotoMapping
 from configs.mappings.medical_social_mapping import MedicalSocialMapping
 from configs.mappings.health_mapping import HealthMapping
-from configs.mappings.hazard_mapping import HazardMapping
 
 
 # Registry of all available mappings
@@ -17,7 +16,6 @@ MAPPING_REGISTRY = {
     'MOTO': MotoMapping,
     'MEDICAL_SOCIAL': MedicalSocialMapping,
     'HEALTH': HealthMapping,
-    'HAZARD': HazardMapping,
 }
 
 
@@ -52,7 +50,6 @@ __all__ = [
     'MotoMapping',
     'MedicalSocialMapping',
     'HealthMapping',
-    'HazardMapping',
     'MAPPING_REGISTRY',
     'get_mapping',
     'get_supported_types',

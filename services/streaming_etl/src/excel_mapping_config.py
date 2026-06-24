@@ -240,41 +240,7 @@ HEALTH_MAPPING = {
     'Channel': 'channelId',
 }
 
-# ==============================================================================
-# HAZARD (Rủi ro) - Hazard.xlsx
-# ==============================================================================
-HAZARD_MAPPING = {
-    # Audit Info
-    'Ngày cập nhật': 'modifiedAt',
-    
-    # Customer Info
-    'Tên khách hàng': 'peopleName',  # Có thể là doanh nghiệp hoặc cá nhân
-    
-    # Contract Info
-    'Mã hợp đồng': 'contractId',
-    
-    # Program Info
-    'Sản phẩm': 'majorName',  # e.g., "Bảo hiểm mọi rủi ro xây dựng và lắp đặt"
-    'Đối tác nhà bảo hiểm': 'companyProviderName',
-    
-    # Fee & Payment Info
-    'Số tiền thanh toán': 'amountPay',  # Số tiền thanh toán
-    
-    # Contract Period
-    'Ngày bắt đầu': 'contractObjectStartDate',
-    'Ngày kết thúc': 'contractObjectEndDate',
-    
-    # Payment Dates
-    'Ngày đến hạn thanh toán': 'paymentDueDate',
-    'Ngày thanh toán': 'paymentDate',
-    
-    # Sale Info
-    'Code sale': 'saleId',
-    'Channel': 'channelId',
-    
-    # Status
-    'Trạng thái': 'contractStatus_text',  # e.g., "Đã thanh toán"
-}
+
 
 # ==============================================================================
 # INSURANCE TYPE AUTO-DETECTION
@@ -285,7 +251,6 @@ INSURANCE_TYPE_BY_FILENAME = {
     'moto': 'MOTO',
     'medical-social': None,  # Need to detect from column value
     'health': 'HEALTH',
-    'hazard': 'HAZARD',
     # NOTE: HOUSE là online CDC, không có Excel file
 }
 
@@ -297,7 +262,6 @@ INSURANCE_TYPES = [
     'SOCIAL',    # BHXH - Offline Excel
     'MEDICAL',   # BHYT - Offline Excel
     'HEALTH',    # Sức khỏe - Offline Excel
-    'HAZARD',    # Rủi ro - Offline Excel
     'HOUSE',     # Nhà ở - Online CDC (không có Excel)
 ]
 
@@ -332,9 +296,6 @@ BUSINESS_KEY_FIELDS = {
                   'contractObjectStartDate', 'contractObjectEndDate', 'feeInsurance'],
     'HEALTH': ['contractId', 'peopleName', 'majorName', 'companyProviderName',
                'contractObjectStartDate', 'contractObjectEndDate', 'feeInsurance'],
-    'HAZARD': ['contractId', 'peopleName', 'majorName', 'companyProviderName',
-               'contractObjectStartDate', 'contractObjectEndDate', 'feeInsurance'],
-    
     # Online CDC insurance types
     'HOUSE': ['contractObjectId', 'peopleName', 'majorName', 'companyProviderName',
               'contractObjectStartDate', 'contractObjectEndDate', 'feeInsurance'],
@@ -352,17 +313,15 @@ REQUIRED_FIELDS = {
 # TABLE MAPPING (Staging table names)
 # ==============================================================================
 STAGING_TABLE_MAPPING = {
-    # Offline Excel -> stgContractObjectOffline (wide table)
-    'TRAVEL': 'stgContractObjectOffline',
-    'VEHICLE': 'stgContractObjectOffline',
-    'MOTO': 'stgContractObjectOffline',
-    'SOCIAL': 'stgContractObjectOffline',
-    'MEDICAL': 'stgContractObjectOffline',
-    'HEALTH': 'stgContractObjectOffline',
-    'HAZARD': 'stgContractObjectOffline',  # Hazard Offline -> uses same wide table
-    
+    # Offline Excel -> stgInsuranceContractObjectOffline (wide table)
+    'TRAVEL': 'stgInsuranceContractObjectOffline',
+    'VEHICLE': 'stgInsuranceContractObjectOffline',
+    'MOTO': 'stgInsuranceContractObjectOffline',
+    'SOCIAL': 'stgInsuranceContractObjectOffline',
+    'MEDICAL': 'stgInsuranceContractObjectOffline',
+    'HEALTH': 'stgInsuranceContractObjectOffline',
     # House Online CDC -> dedicated staging table (CDC consumer uses this)
-    'HOUSE': 'stgContractObjectHouse',
+    'HOUSE': 'stgInsuranceContractObjectHouse',
 }
 
 # ==============================================================================
@@ -378,8 +337,6 @@ PRIMARY_KEY_FIELD = {
     'HEALTH': 'contractObjectId',  # Generated UUID
     
     # Hazard uses contractId as PK (from Excel)
-    'HAZARD': 'contractId',
-    
     # House uses contractObjectId as PK (from CDC source id)
     'HOUSE': 'contractObjectId',
 }

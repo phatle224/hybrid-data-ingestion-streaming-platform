@@ -1,5 +1,5 @@
 """
-Excel to Offline Contract Processor
+Excel to Offline Contract Processor on PostgreSQL
 Rewritten using Strategy + Factory pattern (mirrors backend architecture).
 
 Uses:
@@ -17,13 +17,13 @@ import logging
 from typing import Dict, List, Tuple, Optional
 
 import pandas as pd
-import mysql.connector
-from mysql.connector import Error
+import psycopg2
 
 from models.contract_model import ContractRecord
 from services.excel_service import ExcelService, ProcessorFactory
 from services.duplicate_service import RedisDuplicateService
 from configs.app_settings import app_settings
+from shared.connections import PostgreSQLConnectionManager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class ExcelProcessor:
     """
-    Process Excel files and upload to offline contract table.
+    Process Excel files and upload to offline contract table on PostgreSQL.
     Uses Factory + Strategy pattern consistent with backend portal.
 
     Orchestration flow:
@@ -49,7 +49,7 @@ class ExcelProcessor:
         Initialize processor.
 
         Args:
-            db_config: MySQL connection config
+            db_config: PostgreSQL connection config
             redis_config: Redis connection config (optional, for dedup)
         """
         self.db_config = db_config
@@ -191,7 +191,6 @@ class ExcelProcessor:
         Returns:
             Tuple of (success_count, error_count, error_messages)
         """
-        conn = None
         success_count = 0
         error_count = 0
         errors = []
@@ -202,61 +201,72 @@ class ExcelProcessor:
         )
         logger.info("Target table for %s: %s", insurance_type, target_table)
 
+        db = PostgreSQLConnectionManager(self.db_config, 'staging')
+        if not db.connect():
+            error_msg = "Database connection error"
+            errors.append(error_msg)
+            logger.error(error_msg)
+            return 0, len(records), errors
+
         try:
-            conn = mysql.connector.connect(**self.db_config)
-            cursor = conn.cursor()
+            with db.connection.cursor() as cursor:
+                for record in records:
+                    try:
+                        record_dict = record.to_dict()
 
-            for record in records:
-                try:
-                    record_dict = record.to_dict()
+                        # Add upload metadata
+                        record_dict['createdBy'] = uploaded_by
+                        record_dict['modifiedBy'] = uploaded_by
 
-                    # Add upload metadata
-                    record_dict['createdBy'] = uploaded_by
-                    record_dict['modifiedBy'] = uploaded_by
+                        # Filter to only valid schema columns (from AppSettings)
+                        filtered = {
+                            k: v for k, v in record_dict.items()
+                            if k in app_settings.valid_db_columns and v is not None
+                        }
 
-                    # Filter to only valid schema columns (from AppSettings)
-                    filtered = {
-                        k: v for k, v in record_dict.items()
-                        if k in app_settings.valid_db_columns
-                    }
+                        columns = list(filtered.keys())
+                        placeholders = ['%s'] * len(columns)
+                        values = [filtered[col] for col in columns]
 
-                    # Build INSERT ... ON DUPLICATE KEY UPDATE
-                    columns = list(filtered.keys())
-                    placeholders = ['%s'] * len(columns)
-                    values = [filtered[col] for col in columns]
+                        quoted_table = f'"{target_table}"'
+                        quoted_cols = ', '.join([f'"{col}"' for col in columns])
 
-                    update_clause = ', '.join([
-                        f"`{col}` = VALUES(`{col}`)"
-                        for col in columns
-                        if col != 'offline_id'
-                    ])
+                        if target_table == 'stgInsuranceContractObjectHouse':
+                            # House has "id" as PK/conflict key
+                            update_clause = ', '.join([
+                                f'"{col}" = EXCLUDED."{col}"'
+                                for col in columns
+                                if col != 'id'
+                            ])
+                            query = f"""
+                                INSERT INTO {quoted_table} ({quoted_cols})
+                                VALUES ({', '.join(placeholders)})
+                                ON CONFLICT ("id") DO UPDATE SET {update_clause}, "modifiedDate" = NOW()
+                            """
+                        else:
+                            # Offline table is append-only here because dedup was done by Redis
+                            query = f"""
+                                INSERT INTO {quoted_table} ({quoted_cols})
+                                VALUES ({', '.join(placeholders)})
+                            """
 
-                    query = f"""
-                        INSERT INTO `{target_table}`
-                        ({', '.join([f'`{col}`' for col in columns])})
-                        VALUES ({', '.join(placeholders)})
-                        ON DUPLICATE KEY UPDATE
-                        {update_clause}
-                    """
+                        cursor.execute(query, values)
+                        success_count += 1
 
-                    cursor.execute(query, values)
-                    success_count += 1
+                    except psycopg2.Error as e:
+                        error_count += 1
+                        error_msg = f"Record {record.contract_id}: {e}"
+                        errors.append(error_msg)
+                        logger.error(error_msg)
 
-                except Error as e:
-                    error_count += 1
-                    error_msg = f"Record {record.contract_id}: {e}"
-                    errors.append(error_msg)
-                    logger.error(error_msg)
+                db.connection.commit()
 
-            conn.commit()
-
-        except Error as e:
-            logger.error("Database connection error: %s", e)
+        except Exception as e:
+            logger.error("Database transaction error: %s", e)
             errors.append(f"Database error: {e}")
 
         finally:
-            if conn:
-                conn.close()
+            db.close()
 
         return success_count, error_count, errors
 
@@ -279,9 +289,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Use shared configs
-    from shared.configs import MySQLConfig, RedisConfig
+    from shared.configs import PostgreSQLConfig, RedisConfig
 
-    db_config = MySQLConfig(database='affina_staging').get_config()
+    db_config = PostgreSQLConfig(database_env='DB_DATABASE').get_config()
     redis_config = RedisConfig().get_config()
 
     processor = ExcelProcessor(db_config, redis_config)

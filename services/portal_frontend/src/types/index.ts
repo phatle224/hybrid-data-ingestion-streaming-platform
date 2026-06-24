@@ -4,7 +4,6 @@ export enum InsuranceType {
   MOTO = 'MOTO',
   HEALTH = 'HEALTH',
   MEDICAL_SOCIAL = 'MEDICAL_SOCIAL',  // Gộp Medical và Social vào 1
-  HAZARD = 'HAZARD',
 }
 
 export enum UploadStatus {

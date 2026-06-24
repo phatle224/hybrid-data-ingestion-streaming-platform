@@ -20,13 +20,14 @@ services:
       # Kafka Configuration
       KAFKA_BOOTSTRAP_SERVERS: kafka:9093
       CONSUMER_GROUP: staging-consumer-v1
-      STAGING_TOPIC_PREFIX: staging.affina_staging
+      STAGING_TOPIC_PREFIX: staging.staging
       
-      # MySQL Database (Staging + Reporting)
-      MYSQL_HOST: 172.16.10.32
-      MYSQL_PORT: 3306
-      MYSQL_USER: aff_admin
-      MYSQL_PASSWORD: affina_poOB7G9A51
+      # PostgreSQL Database (Staging + Reporting)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: postgres
       
       # Redis Cache (for deduplication)
       REDIS_HOST: cdc_redis

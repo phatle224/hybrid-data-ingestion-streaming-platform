@@ -1,25 +1,25 @@
 -- ============================================================================
--- FILE: 01_create_staging_schema.sql
--- PURPOSE: Tạo các bảng staging (Staging Database) trên PostgreSQL
+-- FILE: create_source_schema.sql
+-- PURPOSE: Tạo các bảng dữ liệu gốc (Source Database) trên PostgreSQL
 -- DESCRIPTION:
---   Chuyển đổi cú pháp MySQL sang chuẩn PostgreSQL cho database Staging.
---   - Thêm tiền tố stgInsurance vào tên các bảng để đồng bộ với Source.
---   - Đổi tên schema từ affina_staging thành staging để tăng tính generic.
---   - Loại bỏ các cú pháp độc quyền của MySQL (backticks, ENGINE, COLLATE, v.v.).
--- USAGE: psql -h <host> -U <user> -d <database_name> -f 01_create_staging_schema.sql
+--   Thiết kế ngược (reverse-engineer) từ schema Staging của hệ thống.
+--   - Đã đổi tên bảng theo chuẩn portfolio: insuranceContract, insuranceClaim, v.v.
+--   - Loại bỏ các trường metadata của CDC (ví dụ: modifiedDate).
+--   - Chuyển đổi cú pháp MySQL sang chuẩn PostgreSQL.
+-- USAGE: psql -h <host> -U <user> -d <database_name> -f create_source_schema.sql
 -- ============================================================================
 
--- Khởi tạo schema nếu chưa tồn tại
-CREATE SCHEMA IF NOT EXISTS "staging";
+-- Khởi tạo schema nếu cần
+CREATE SCHEMA IF NOT EXISTS "source";
 
--- Thiết lập search_path về schema staging
-SET search_path TO "staging", public;
+-- Thiết lập search_path về schema source
+SET search_path TO "source", public;
 
 -- ============================================================================
--- Table: stgInsuranceContract
+-- Table: insuranceContract
 -- Origin: stgContract
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceContract" (
+CREATE TABLE IF NOT EXISTS "insuranceContract" (
   "contractId" VARCHAR(255) NOT NULL,
   "contractIdDisplay" VARCHAR(256) DEFAULT NULL,
   "thirdPartyRequestId" VARCHAR(256) DEFAULT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceContract" (
   "buyHelp" INTEGER DEFAULT NULL,
   "partnerStatus" INTEGER DEFAULT NULL,
   "integrationPartnerStatus" INTEGER DEFAULT NULL,
-  "userId" VARCHAR(256) DEFAULT NULL, 
+  "userId" VARCHAR(256) DEFAULT NULL,
   "buyerId" VARCHAR(50) DEFAULT NULL,
   "name" VARCHAR(256) NOT NULL,
   "dob" DATE DEFAULT NULL,
@@ -116,16 +116,14 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceContract" (
   "insurerUrl" VARCHAR(256) DEFAULT NULL,
   "certFile" VARCHAR(256) DEFAULT NULL,
   "refundAmount" NUMERIC(20,2) DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("contractId")
 );
 
-
 -- ============================================================================
--- Table: stgInsuranceContractObject
+-- Table: insuranceContractObject
 -- Origin: stgContractObject
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceContractObject" (
+CREATE TABLE IF NOT EXISTS "insuranceContractObject" (
   "contractObjectId" VARCHAR(256) NOT NULL,
   "contractObjectIdDisplay" VARCHAR(256) DEFAULT NULL,
   "cardNumber" VARCHAR(256) DEFAULT NULL,
@@ -261,16 +259,14 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceContractObject" (
   "upload_5" VARCHAR(256) DEFAULT NULL,
   "createdAt_7" VARCHAR(50) DEFAULT NULL,
   "modifiedAt_9" VARCHAR(50) DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("contractObjectId")
 );
 
-
 -- ============================================================================
--- Table: stgInsuranceClaim
+-- Table: insuranceClaim
 -- Origin: stgClaim
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceClaim" (
+CREATE TABLE IF NOT EXISTS "insuranceClaim" (
   "id" VARCHAR(256) NOT NULL,
   "contractId" VARCHAR(256) NOT NULL,
   "contractObjectId" VARCHAR(256) NOT NULL,
@@ -318,16 +314,14 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceClaim" (
   "causeDate" TIMESTAMP DEFAULT NULL,
   "placeOfTreatmentId" VARCHAR(255) DEFAULT NULL,
   "compensationDetail" TEXT DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id")
 );
 
-
 -- ============================================================================
--- Table: stgInsuranceContractObjectVehicle
+-- Table: insuranceContractObjectVehicle
 -- Origin: stgContractObjectVehicle
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectVehicle" (
+CREATE TABLE IF NOT EXISTS "insuranceContractObjectVehicle" (
   "contractObjectId" VARCHAR(256) NOT NULL,
   "contractObjectIdDisplay" VARCHAR(256) DEFAULT NULL,
   "cardNumber" VARCHAR(256) DEFAULT NULL,
@@ -397,20 +391,14 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectVehicle" (
   "contractObjectCardDocument" TEXT DEFAULT NULL,
   "paymentType" INTEGER DEFAULT NULL,
   "programDocument" TEXT DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("contractObjectId")
 );
 
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectVehicle_contractId" ON "stgInsuranceContractObjectVehicle"("contractId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectVehicle_userId" ON "stgInsuranceContractObjectVehicle"("userId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectVehicle_modifiedDate" ON "stgInsuranceContractObjectVehicle"("modifiedDate");
-
-
 -- ============================================================================
--- Table: stgInsuranceContractObjectTravel
+-- Table: insuranceContractObjectTravel
 -- Origin: stgContractObjectTravel
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectTravel" (
+CREATE TABLE IF NOT EXISTS "insuranceContractObjectTravel" (
   "id" VARCHAR(256) NOT NULL,
   "idDisplay" VARCHAR(256) DEFAULT NULL,
   "cardNumber" VARCHAR(256) DEFAULT NULL,
@@ -498,16 +486,14 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectTravel" (
   "adults" INTEGER DEFAULT NULL,
   "children" INTEGER DEFAULT NULL,
   "programDocument" TEXT DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id")
 );
 
-
 -- ============================================================================
--- Table: stgInsuranceContractObjectMoto
+-- Table: insuranceContractObjectMoto
 -- Origin: stgContractObjectMoto
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectMoto" (
+CREATE TABLE IF NOT EXISTS "insuranceContractObjectMoto" (
   "id" VARCHAR(256) NOT NULL,
   "idDisplay" VARCHAR(256) DEFAULT NULL,
   "cardNumber" VARCHAR(256) DEFAULT NULL,
@@ -575,21 +561,15 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectMoto" (
   "vatFeeMainBenefit" NUMERIC(20,2) DEFAULT 0,
   "preVatFeeMainBenefit" NUMERIC(20,2) DEFAULT 0,
   "preVatFeeInsurance" NUMERIC(20,2) DEFAULT 0,
-  "vatFeeInsurance" NUMERIC(20,2) DEFAULT 0,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  "VatFeeInsurance" NUMERIC(20,2) DEFAULT 0,
   PRIMARY KEY ("id")
 );
 
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectMoto_contractId" ON "stgInsuranceContractObjectMoto"("contractId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectMoto_userId" ON "stgInsuranceContractObjectMoto"("userId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectMoto_modifiedDate" ON "stgInsuranceContractObjectMoto"("modifiedDate");
-
-
 -- ============================================================================
--- Table: stgInsuranceContractObjectSocialInsurance
+-- Table: insuranceContractObjectSocialInsurance
 -- Origin: stgContractObjectSocialInsurance
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectSocialInsurance" (
+CREATE TABLE IF NOT EXISTS "insuranceContractObjectSocialInsurance" (
   "contractObjectId" VARCHAR(256) NOT NULL,
   "contractObjectIdDisplay" VARCHAR(256) DEFAULT NULL,
   "cardNumber" VARCHAR(256) DEFAULT NULL,
@@ -684,21 +664,14 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectSocialInsurance" (
   "preVatFeeInsurance" NUMERIC(20,2) DEFAULT 0,
   "vatFeeInsurance" NUMERIC(20,2) DEFAULT 0,
   "discountAmount" NUMERIC(10,2) DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("contractObjectId")
 );
 
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectSocialInsurance_contractId" ON "stgInsuranceContractObjectSocialInsurance"("contractId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectSocialInsurance_userId" ON "stgInsuranceContractObjectSocialInsurance"("userId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectSocialInsurance_modifiedDate" ON "stgInsuranceContractObjectSocialInsurance"("modifiedDate");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectSocialInsurance_packageName" ON "stgInsuranceContractObjectSocialInsurance"("packageName");
-
-
 -- ============================================================================
--- Table: stgInsuranceContractObjectMedicalInsurance
+-- Table: insuranceContractObjectMedicalInsurance
 -- Origin: stgContractObjectMedicalInsurance
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectMedicalInsurance" (
+CREATE TABLE IF NOT EXISTS "insuranceContractObjectMedicalInsurance" (
   "contractObjectId" VARCHAR(256) NOT NULL,
   "contractObjectIdDisplay" VARCHAR(256) DEFAULT NULL,
   "cardNumber" VARCHAR(256) DEFAULT NULL,
@@ -794,21 +767,14 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectMedicalInsurance" (
   "nation" VARCHAR(100) DEFAULT NULL,
   "ethnicity" VARCHAR(100) DEFAULT NULL,
   "socialId" VARCHAR(64) DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("contractObjectId")
 );
 
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectMedicalInsurance_contractId" ON "stgInsuranceContractObjectMedicalInsurance"("contractId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectMedicalInsurance_userId" ON "stgInsuranceContractObjectMedicalInsurance"("userId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectMedicalInsurance_modifiedDate" ON "stgInsuranceContractObjectMedicalInsurance"("modifiedDate");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectMedicalInsurance_packageName" ON "stgInsuranceContractObjectMedicalInsurance"("packageName");
-
-
 -- ============================================================================
--- Table: stgInsuranceContractObjectHouse
+-- Table: insuranceContractObjectHouse
 -- Origin: stgContractObjectHouse
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectHouse" (
+CREATE TABLE IF NOT EXISTS "insuranceContractObjectHouse" (
   "id" VARCHAR(256) NOT NULL,
   "idDisplay" VARCHAR(256) DEFAULT NULL,
   "cardNumber" VARCHAR(256) DEFAULT NULL,
@@ -908,241 +874,5 @@ CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectHouse" (
   "createdBy" VARCHAR(256) DEFAULT NULL,
   "modifiedAt" TIMESTAMP DEFAULT NULL,
   "modifiedBy" VARCHAR(256) DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id")
 );
-
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectHouse_contractId" ON "stgInsuranceContractObjectHouse"("contractId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectHouse_userId" ON "stgInsuranceContractObjectHouse"("userId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectHouse_modifiedDate" ON "stgInsuranceContractObjectHouse"("modifiedDate");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectHouse_companyProvider" ON "stgInsuranceContractObjectHouse"("companyProvider");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectHouse_majorId" ON "stgInsuranceContractObjectHouse"("majorId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectHouse_programId" ON "stgInsuranceContractObjectHouse"("programId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectHouse_contractIndividualStatus" ON "stgInsuranceContractObjectHouse"("contractIndividualStatus");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectHouse_houseCityCode" ON "stgInsuranceContractObjectHouse"("houseCityCode");
-
-
--- ============================================================================
--- Table: stgInsuranceContractObjectOffline
--- Purpose: Wide table chứa dữ liệu tổng hợp của tất cả loại bảo hiểm offline
--- ============================================================================
-CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectOffline" (
-  "offline_id" SERIAL,
-  "contractObjectId" TEXT DEFAULT NULL,
-  "contractObjectIdDisplay" TEXT DEFAULT NULL,
-  "insuranceType" VARCHAR(50) NOT NULL,
-  "cardNumber" TEXT DEFAULT NULL,
-  "certificateNumberProvider" TEXT DEFAULT NULL,
-  "accountTPA" TEXT DEFAULT NULL,
-  "userId" TEXT DEFAULT NULL,
-  "contractId" TEXT DEFAULT NULL,
-  "contractIdDisplay" TEXT DEFAULT NULL,
-  "contractObjectSmeStatus" INTEGER DEFAULT NULL,
-  "contractIndividualStatus" INTEGER DEFAULT NULL,
-  "contractObjectStartDate" TIMESTAMP DEFAULT NULL,
-  "contractObjectEndDate" TIMESTAMP DEFAULT NULL,
-  "contractObjectIdProvider" TEXT DEFAULT NULL,
-  "contractObjectUrl" TEXT DEFAULT NULL,
-  "programTypeName" TEXT DEFAULT NULL,
-  "programTypeId" TEXT DEFAULT NULL,
-  "programId" TEXT DEFAULT NULL,
-  "programName" TEXT DEFAULT NULL,
-  "packageId" TEXT DEFAULT NULL,
-  "packageName" TEXT DEFAULT NULL,
-  "packageCodeFromProvider" TEXT DEFAULT NULL,
-  "programCodeMiningChannel" TEXT DEFAULT NULL,
-  "programDocument" TEXT DEFAULT '[]',
-  "fromAge" INTEGER DEFAULT NULL,
-  "toAge" INTEGER DEFAULT NULL,
-  "feeMainBenefit" NUMERIC(20,2) DEFAULT NULL,
-  "feeSideBenefit" NUMERIC(20,2) DEFAULT 0,
-  "feeInsurance" NUMERIC(20,2) DEFAULT NULL,
-  "maximumAmount" NUMERIC(20,2) DEFAULT NULL,
-  "preVatFeeMainBenefit" NUMERIC(20,2) DEFAULT 0,
-  "vatFeeMainBenefit" NUMERIC(20,2) DEFAULT 0,
-  "preVatFeeSideBenefit" NUMERIC(20,2) DEFAULT 0,
-  "vatFeeSideBenefit" NUMERIC(20,2) DEFAULT 0,
-  "preVatFeeInsurance" NUMERIC(20,2) DEFAULT 0,
-  "vatFeeInsurance" NUMERIC(20,2) DEFAULT 0,
-  "termsId" TEXT DEFAULT NULL,
-  "termsHighlight" TEXT DEFAULT NULL,
-  "termsBenefit" TEXT DEFAULT NULL,
-  "termsApplicableObject" TEXT DEFAULT NULL,
-  "termsFeePaymentMethod" TEXT DEFAULT NULL,
-  "termsHospital" TEXT DEFAULT NULL,
-  "majorName" TEXT DEFAULT NULL,
-  "majorId" TEXT DEFAULT NULL,
-  "productId" TEXT DEFAULT NULL,
-  "codeFromProvider" TEXT DEFAULT NULL,
-  "companyProvider" TEXT DEFAULT NULL,
-  "companyProviderName" TEXT DEFAULT NULL,
-  "contractObjectType" INTEGER DEFAULT NULL,
-  "peopleRelationship" INTEGER DEFAULT NULL,
-  "peopleName" TEXT DEFAULT NULL,
-  "peopleDob" DATE DEFAULT NULL,
-  "peopleGender" INTEGER DEFAULT NULL,
-  "peopleLicense" TEXT DEFAULT NULL,
-  "peopleLicenseType" INTEGER DEFAULT NULL,
-  "peoplePhone" VARCHAR(15) DEFAULT NULL,
-  "peopleEmail" TEXT DEFAULT NULL,
-  "peopleAddress" TEXT DEFAULT NULL,
-  "peopleDistrictsCode" INTEGER DEFAULT NULL,
-  "peopleWardsCode" INTEGER DEFAULT NULL,
-  "peopleStreet" TEXT DEFAULT NULL,
-  "peopleHouseNumber" TEXT DEFAULT NULL,
-  "peopleCityCode" INTEGER DEFAULT NULL,
-  "peopleNote" TEXT DEFAULT NULL,
-  "peopleUpload" TEXT DEFAULT NULL,
-  "peopleLicenseFront" TEXT DEFAULT NULL,
-  "peopleLicenseBack" TEXT DEFAULT NULL,
-  "peopleLicenseQr" TEXT DEFAULT NULL,
-  "name" TEXT DEFAULT NULL,
-  "dob" TEXT DEFAULT NULL,
-  "gender" INTEGER DEFAULT NULL,
-  "license" TEXT DEFAULT NULL,
-  "licenseType" INTEGER DEFAULT NULL,
-  "licenseFront" TEXT DEFAULT NULL,
-  "licenseBack" TEXT DEFAULT NULL,
-  "phone" VARCHAR(15) DEFAULT NULL,
-  "email" TEXT DEFAULT NULL,
-  "address" TEXT DEFAULT NULL,
-  "districtsCode" INTEGER DEFAULT NULL,
-  "wardsCode" INTEGER DEFAULT NULL,
-  "street" TEXT DEFAULT NULL,
-  "houseNumber" TEXT DEFAULT NULL,
-  "cityCode" INTEGER DEFAULT NULL,
-  "customerType" INTEGER DEFAULT NULL,
-  "upload" TEXT DEFAULT NULL,
-  "note" TEXT DEFAULT NULL,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "createdBy" TEXT DEFAULT NULL,
-  "modifiedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "modifiedBy" TEXT DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  "minDate" INTEGER DEFAULT NULL,
-  "contractObjectIdPrev" TEXT DEFAULT NULL,
-  "memberId" TEXT DEFAULT NULL,
-  "contractObjectCardDocument" TEXT DEFAULT NULL,
-  "contractObjectCardImage" TEXT DEFAULT NULL,
-  "paymentType" INTEGER DEFAULT NULL,
-  "document" TEXT DEFAULT NULL,
-  "vehicleId" TEXT DEFAULT NULL,
-  "licensePlates" TEXT DEFAULT NULL,
-  "chassisNumber" TEXT DEFAULT NULL,
-  "engineNumber" TEXT DEFAULT NULL,
-  "maker" TEXT DEFAULT NULL,
-  "type" INTEGER DEFAULT NULL,
-  "line" TEXT DEFAULT NULL,
-  "seatNumber" INTEGER DEFAULT NULL,
-  "programObject" INTEGER DEFAULT NULL,
-  "nationality" TEXT DEFAULT NULL,
-  "nationalityId" TEXT DEFAULT NULL,
-  "domesticOrInternational" INTEGER DEFAULT NULL,
-  "departure" TEXT DEFAULT NULL,
-  "destination" INTEGER DEFAULT NULL,
-  "destinationDomestic" TEXT DEFAULT NULL,
-  "journey" TEXT DEFAULT NULL,
-  "startDateJourney" DATE DEFAULT NULL,
-  "endDateJourney" DATE DEFAULT NULL,
-  "programObjectFromProvider" TEXT DEFAULT NULL,
-  "destinationFromProvider" TEXT DEFAULT NULL,
-  "codePackageFromProvider" TEXT DEFAULT NULL,
-  "adults" INTEGER DEFAULT NULL,
-  "children" INTEGER DEFAULT NULL,
-  "payerUserId" TEXT DEFAULT NULL,
-  "payerName" TEXT DEFAULT NULL,
-  "payerDob" DATE DEFAULT NULL,
-  "payerGender" INTEGER DEFAULT NULL,
-  "payerLicense" TEXT DEFAULT NULL,
-  "payerLicenseType" INTEGER DEFAULT NULL,
-  "payerLicenseFront" TEXT DEFAULT NULL,
-  "payerLicenseBack" TEXT DEFAULT NULL,
-  "payerPhone" VARCHAR(15) DEFAULT NULL,
-  "payerEmail" TEXT DEFAULT NULL,
-  "payerAddress" TEXT DEFAULT NULL,
-  "payerDistrictsCode" INTEGER DEFAULT NULL,
-  "payerWardsCode" INTEGER DEFAULT NULL,
-  "payerStreet" TEXT DEFAULT NULL,
-  "payerHouseNumber" TEXT DEFAULT NULL,
-  "payerCityCode" INTEGER DEFAULT NULL,
-  "payerNote" TEXT DEFAULT NULL,
-  "payerUpload" TEXT DEFAULT NULL,
-  "payerCustomerType" INTEGER DEFAULT NULL,
-  "declarationType" INTEGER DEFAULT NULL,
-  "remunerationType" INTEGER DEFAULT NULL,
-  "oldCardStartDate" DATE DEFAULT NULL,
-  "oldCardEndDate" DATE DEFAULT NULL,
-  "renewal" INTEGER DEFAULT NULL,
-  "socialFamilyId" TEXT DEFAULT NULL,
-  "socialId" TEXT DEFAULT NULL,
-  "monthlyIncome" NUMERIC(20,2) DEFAULT 0,
-  "paymentPeriod" INTEGER DEFAULT NULL,
-  "supportBudget" NUMERIC(20,2) DEFAULT 0,
-  "oldBhxhCodeUnit" TEXT DEFAULT NULL,
-  "oldRegisterDate" TEXT DEFAULT NULL,
-  "percent" DOUBLE PRECISION DEFAULT NULL,
-  "discountAmount" NUMERIC(10,2) DEFAULT NULL,
-  "fiveYearDate" TEXT DEFAULT NULL,
-  "medicalId" TEXT DEFAULT NULL,
-  "hospitalCode" TEXT DEFAULT NULL,
-  "hospitalName" TEXT DEFAULT NULL,
-  "hospitalCityRegisteredCode" INTEGER DEFAULT NULL,
-  "hospitalCityRegisteredName" TEXT DEFAULT NULL,
-  "nation" TEXT DEFAULT NULL,
-  "ethnicity" TEXT DEFAULT NULL,
-  "thirdPartyRequestId" TEXT DEFAULT NULL,
-  "reqCode" DOUBLE PRECISION DEFAULT NULL,
-  "contractIdProvider" TEXT DEFAULT NULL,
-  "contractStatus" INTEGER DEFAULT NULL,
-  "buyHelp" INTEGER DEFAULT NULL,
-  "buyerId" TEXT DEFAULT NULL,
-  "contractType" INTEGER DEFAULT NULL,
-  "contractIdRoot" TEXT DEFAULT NULL,
-  "companySale" INTEGER DEFAULT NULL,
-  "branchSale" DOUBLE PRECISION DEFAULT NULL,
-  "branchSaleName" TEXT DEFAULT NULL,
-  "companySaleName" TEXT DEFAULT NULL,
-  "contractPeriod" INTEGER DEFAULT NULL,
-  "contractPeriodValue" INTEGER DEFAULT NULL,
-  "contractStartDate" DATE DEFAULT NULL,
-  "contractEndDate" DATE DEFAULT NULL,
-  "voucherId" TEXT DEFAULT NULL,
-  "voucherCode" TEXT DEFAULT NULL,
-  "amountDiscount" TEXT DEFAULT NULL,
-  "amount" INTEGER DEFAULT NULL,
-  "commission" INTEGER DEFAULT NULL,
-  "amountPay" INTEGER DEFAULT NULL,
-  "redBill" INTEGER DEFAULT NULL,
-  "paymentMethod" INTEGER DEFAULT NULL,
-  "reasonCancel" TEXT DEFAULT NULL,
-  "codeErrorCancel" TEXT DEFAULT NULL,
-  "messageError" TEXT DEFAULT NULL,
-  "referralCode" TEXT DEFAULT NULL,
-  "saleId" TEXT DEFAULT NULL,
-  "bonusAmount" TEXT DEFAULT NULL,
-  "fromLead" TEXT DEFAULT NULL,
-  "source" INTEGER DEFAULT NULL,
-  "outsideCreatedAt" TIMESTAMP DEFAULT NULL,
-  "outsidePaymentAt" TIMESTAMP DEFAULT NULL,
-  "outsidePaymentId" TEXT DEFAULT NULL,
-  "channelId" TEXT DEFAULT NULL,
-  "levelId" TEXT DEFAULT NULL,
-  "certFile" TEXT DEFAULT NULL,
-  "orderNumber" TEXT DEFAULT NULL,
-  "userId_1" TEXT DEFAULT NULL,
-  "contractId_2" TEXT DEFAULT NULL,
-  "contractObjectType_3" INTEGER DEFAULT NULL,
-  "customerType_4" INTEGER DEFAULT NULL,
-  "upload_5" TEXT DEFAULT NULL,
-  "createdAt_7" TEXT DEFAULT NULL,
-  "modifiedAt_9" TEXT DEFAULT NULL,
-  PRIMARY KEY ("offline_id")
-);
-
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_insuranceType" ON "stgInsuranceContractObjectOffline"("insuranceType");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_contractId" ON "stgInsuranceContractObjectOffline"("contractId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_userId" ON "stgInsuranceContractObjectOffline"("userId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_modifiedDate" ON "stgInsuranceContractObjectOffline"("modifiedDate");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_packageName" ON "stgInsuranceContractObjectOffline"("packageName");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_contractStatus" ON "stgInsuranceContractObjectOffline"("contractStatus");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_createdAt" ON "stgInsuranceContractObjectOffline"("createdAt");

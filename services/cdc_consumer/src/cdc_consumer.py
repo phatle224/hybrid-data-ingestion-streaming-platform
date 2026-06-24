@@ -15,8 +15,8 @@ from typing import Any, Dict, List
 import logging
 
 from shared.logger import create_logger, configure_shared_loggers
-from shared.configs import MySQLConfig, KafkaConfig
-from shared.connections import MySQLConnectionManager
+from shared.configs import PostgreSQLConfig, KafkaConfig
+from shared.connections import PostgreSQLConnectionManager
 from shared.debezium import DebeziumTransformer
 from shared.query_builder import SQLQueryBuilder
 from shared.base_consumer import BaseKafkaConsumer
@@ -24,7 +24,7 @@ from shared.base_consumer import BaseKafkaConsumer
 
 class CDCConsumer(BaseKafkaConsumer):
     """
-    CDC Consumer: Source Debezium → Kafka → MySQL Staging.
+    CDC Consumer: Source Debezium → Kafka → PostgreSQL Staging.
 
     Processes CDC events from source database and writes to staging tables.
     Supports insert (UPSERT), update (UPDATE trigger), and delete operations.
@@ -32,10 +32,10 @@ class CDCConsumer(BaseKafkaConsumer):
 
     def __init__(self):
         # ── Configuration ────────────────────────────────────
-        self._topic_prefix = os.getenv('TOPIC_PREFIX', 'source.affina_sale')
+        self._topic_prefix = os.getenv('TOPIC_PREFIX', 'source.source')
 
-        self._mysql_config = MySQLConfig(
-            database_env='MYSQL_DATABASE',
+        self._db_config = PostgreSQLConfig(
+            database_env='DB_DATABASE',
         ).get_config()
 
         self._kafka_config = KafkaConfig(
@@ -49,33 +49,33 @@ class CDCConsumer(BaseKafkaConsumer):
 
         # ── Topic → Table Mapping ────────────────────────────
         self._topic_table_mapping = {
-            f'{self._topic_prefix}.contract': 'stgContract',
-            f'{self._topic_prefix}.contractObject': 'stgContractObject',
-            f'{self._topic_prefix}.contractObjectVehicle': 'stgContractObjectVehicle',
-            f'{self._topic_prefix}.contractObjectTravel': 'stgContractObjectTravel',
-            f'{self._topic_prefix}.contractObjectMoto': 'stgContractObjectMoto',
-            f'{self._topic_prefix}.contractObjectSocialInsurance': 'stgContractObjectSocialInsurance',
-            f'{self._topic_prefix}.contractObjectmedicalInsurance': 'stgContractObjectMedicalInsurance',
-            f'{self._topic_prefix}.contractObjectHouse': 'stgContractObjectHouse',
-            f'{self._topic_prefix}.claim': 'stgClaim',
+            f'{self._topic_prefix}.insuranceContract': 'stgInsuranceContract',
+            f'{self._topic_prefix}.insuranceContractObject': 'stgInsuranceContractObject',
+            f'{self._topic_prefix}.insuranceContractObjectVehicle': 'stgInsuranceContractObjectVehicle',
+            f'{self._topic_prefix}.insuranceContractObjectTravel': 'stgInsuranceContractObjectTravel',
+            f'{self._topic_prefix}.insuranceContractObjectMoto': 'stgInsuranceContractObjectMoto',
+            f'{self._topic_prefix}.insuranceContractObjectSocialInsurance': 'stgInsuranceContractObjectSocialInsurance',
+            f'{self._topic_prefix}.insuranceContractObjectMedicalInsurance': 'stgInsuranceContractObjectMedicalInsurance',
+            f'{self._topic_prefix}.insuranceContractObjectHouse': 'stgInsuranceContractObjectHouse',
+            f'{self._topic_prefix}.insuranceClaim': 'stgInsuranceClaim',
         }
 
         # ── Primary Key Mapping ──────────────────────────────
         self._primary_keys = {
-            'stgContract': 'contractId',
-            'stgContractObject': 'contractObjectId',
-            'stgContractObjectVehicle': 'contractObjectId',
-            'stgContractObjectTravel': 'id',
-            'stgContractObjectMoto': 'id',
-            'stgContractObjectSocialInsurance': 'contractObjectId',
-            'stgContractObjectMedicalInsurance': 'contractObjectId',
-            'stgContractObjectHouse': 'id',
-            'stgClaim': 'id',
+            'stgInsuranceContract': 'contractId',
+            'stgInsuranceContractObject': 'contractObjectId',
+            'stgInsuranceContractObjectVehicle': 'contractObjectId',
+            'stgInsuranceContractObjectTravel': 'id',
+            'stgInsuranceContractObjectMoto': 'id',
+            'stgInsuranceContractObjectSocialInsurance': 'contractObjectId',
+            'stgInsuranceContractObjectMedicalInsurance': 'contractObjectId',
+            'stgInsuranceContractObjectHouse': 'id',
+            'stgInsuranceClaim': 'id',
         }
 
         # ── State ────────────────────────────────────────────
         self._table_columns: Dict[str, set] = {}
-        self._db = MySQLConnectionManager(self._mysql_config, 'staging')
+        self._db = PostgreSQLConnectionManager(self._db_config, 'staging')
 
     # ─── BaseKafkaConsumer Implementation ────────────────────
 

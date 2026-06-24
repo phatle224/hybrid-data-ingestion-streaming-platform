@@ -10,12 +10,11 @@ services:
       - "3011:3011"
     environment:
       - DEBUG=true
-      - MYSQL_HOST=${MYSQL_HOST:-172.16.10.32}
-      - DB_HOST=${MYSQL_HOST:-172.16.10.32}
-      - DB_USER=${MYSQL_USER:-aff_admin}
-      - DB_PASSWORD=${MYSQL_PASSWORD:-affina_poOB7G9A51}
-      - DB_NAME=${MYSQL_DATABASE:-affina_staging}
-      - DB_PORT=${MYSQL_PORT:-3306}
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_DATABASE:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3011/api/health/"]

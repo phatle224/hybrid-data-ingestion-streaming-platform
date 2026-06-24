@@ -8,17 +8,14 @@ services:
       # Kafka Configuration
       KAFKA_BOOTSTRAP_SERVERS: kafka:9093
       CONSUMER_GROUP: profiling-consumer-v1
-      TOPIC_PREFIX: staging.affina_staging
+      TOPIC_PREFIX: staging.staging
       
-      # Staging Database (read-only for lookups)
-      STAGING_DB_HOST: 172.16.10.32
-      STAGING_DB_USER: aff_admin
-      STAGING_DB_PASSWORD: affina_poOB7G9A51
-      
-      # Reporting Database (write profiling_analysis)
-      REPORTING_DB_HOST: 172.16.10.32
-      REPORTING_DB_USER: aff_admin
-      REPORTING_DB_PASSWORD: affina_poOB7G9A51
+      # PostgreSQL Database (Staging + Reporting)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: postgres
       
       # Logging
       PYTHONUNBUFFERED: 1

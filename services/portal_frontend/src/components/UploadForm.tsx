@@ -217,7 +217,6 @@ const INSURANCE_OPTIONS = [
   { value: InsuranceType.MOTO, label: 'Motorcycle Insurance (Xe máy)' },
   { value: InsuranceType.HEALTH, label: 'Health Insurance (Sức khỏe)' },
   { value: InsuranceType.MEDICAL_SOCIAL, label: 'Medical & Social Insurance (Y tế/Xã hội)' },
-  { value: InsuranceType.HAZARD, label: 'Hazard Insurance (Rủi ro)' },
 ]
 
 interface ResultState {

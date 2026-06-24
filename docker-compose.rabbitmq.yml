@@ -54,10 +54,12 @@ services:
     environment:
       # Timezone Configuration
       TZ: Asia/Ho_Chi_Minh
-      # MySQL Configuration
-      MYSQL_HOST: 172.16.10.32
-      MYSQL_USER: aff_admin
-      MYSQL_PASSWORD: affina_poOB7G9A51
+      # PostgreSQL Configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: postgres
       # RabbitMQ Configuration
       RABBITMQ_HOST: cdc_rabbitmq
       RABBITMQ_PORT: 5672

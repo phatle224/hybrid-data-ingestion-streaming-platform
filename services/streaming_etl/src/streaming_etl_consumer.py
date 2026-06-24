@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Streaming ETL Consumer - Real-time staging → reporting pipeline
-================================================================
+Streaming ETL Consumer - Real-time staging → reporting pipeline on PostgreSQL
+================================================================================
 Replaces batch ETL scheduler with event-driven streaming.
 
 Architecture:
-    Debezium → Kafka (staging topics) → This Consumer → affina_reporting
+    Debezium → Kafka (staging topics) → This Consumer → PostgreSQL reporting
 
 Topics consumed:
-    - staging.affina_staging.stgContract
-    - staging.affina_staging.stgContractObject (HEALTH)
-    - staging.affina_staging.stgContractObjectVehicle
-    - staging.affina_staging.stgContractObjectTravel
-    - staging.affina_staging.stgContractObjectMoto
-    - staging.affina_staging.stgContractObjectSocialInsurance
-    - staging.affina_staging.stgContractObjectMedicalInsurance
-    - staging.affina_staging.stgContractObjectHouse
-    - staging.affina_staging.stgContractObjectOffline (Excel uploads)
+    - staging.stgInsuranceContract
+    - staging.stgInsuranceContractObject (HEALTH)
+    - staging.stgInsuranceContractObjectVehicle
+    - staging.stgInsuranceContractObjectTravel
+    - staging.stgInsuranceContractObjectMoto
+    - staging.stgInsuranceContractObjectSocialInsurance
+    - staging.stgInsuranceContractObjectMedicalInsurance
+    - staging.stgInsuranceContractObjectHouse
+    - staging.stgInsuranceContractObjectOffline (Excel uploads)
 
 Inherits BaseKafkaConsumer for standardized lifecycle.
 """
@@ -28,8 +28,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from shared.logger import create_logger, configure_shared_loggers
-from shared.configs import MySQLConfig, KafkaConfig, RedisConfig
-from shared.connections import MySQLConnectionManager, RedisConnectionManager
+from shared.configs import PostgreSQLConfig, KafkaConfig, RedisConfig
+from shared.connections import PostgreSQLConnectionManager, RedisConnectionManager
 from shared.debezium import DebeziumTransformer
 from shared.query_builder import SQLQueryBuilder
 from shared.base_consumer import BaseKafkaConsumer
@@ -52,15 +52,15 @@ class TopicConfig:
 
 # Primary key mapping for each staging table
 PRIMARY_KEYS = {
-    'stgContract': 'contractId',
-    'stgContractObject': 'contractObjectId',
-    'stgContractObjectVehicle': 'contractObjectId',
-    'stgContractObjectTravel': 'id',
-    'stgContractObjectMoto': 'id',
-    'stgContractObjectSocialInsurance': 'contractObjectId',
-    'stgContractObjectMedicalInsurance': 'contractObjectId',
-    'stgContractObjectHouse': 'id',
-    'stgContractObjectOffline': 'offline_id',
+    'stgInsuranceContract': 'contractId',
+    'stgInsuranceContractObject': 'contractObjectId',
+    'stgInsuranceContractObjectVehicle': 'contractObjectId',
+    'stgInsuranceContractObjectTravel': 'id',
+    'stgInsuranceContractObjectMoto': 'id',
+    'stgInsuranceContractObjectSocialInsurance': 'contractObjectId',
+    'stgInsuranceContractObjectMedicalInsurance': 'contractObjectId',
+    'stgInsuranceContractObjectHouse': 'id',
+    'stgInsuranceContractObjectOffline': 'offline_id',
 }
 
 
@@ -77,16 +77,16 @@ class StreamingETLConsumer(BaseKafkaConsumer):
     - Redis deduplication check
     - Automatic field mapping from staging to reporting
     - Support both online (CDC) and offline (Excel) data
-    - Idempotent upserts using ON DUPLICATE KEY UPDATE
+    - Idempotent upserts using ON CONFLICT DO UPDATE
     - Contract cache for JOIN enrichment
     """
 
     def __init__(self):
         # ── Configuration ────────────────────────────────────
-        self._topic_prefix = os.getenv('STAGING_TOPIC_PREFIX', 'staging.affina_staging')
+        self._topic_prefix = os.getenv('STAGING_TOPIC_PREFIX', 'staging')
 
-        self._staging_config = MySQLConfig(database='affina_staging', autocommit=True).get_config()  # autocommit=True: tránh REPEATABLE READ ẩn row mới
-        self._reporting_config = MySQLConfig(database='affina_reporting').get_config()
+        self._staging_config = PostgreSQLConfig(database_env='DB_DATABASE').get_config()
+        self._reporting_config = PostgreSQLConfig(database_env='DB_DATABASE').get_config()
         self._redis_config = RedisConfig().get_config()
         self._kafka_config = KafkaConfig(
             group_id=os.getenv('CONSUMER_GROUP', 'staging-consumer-v1'),
@@ -102,15 +102,14 @@ class StreamingETLConsumer(BaseKafkaConsumer):
         self._topic_configs = self._build_topic_configs()
 
         # ── Connections ──────────────────────────────────────
-        self._staging_db = MySQLConnectionManager(self._staging_config, 'staging')
-        self._reporting_db = MySQLConnectionManager(self._reporting_config, 'reporting')
+        self._staging_db = PostgreSQLConnectionManager(self._staging_config, 'staging')
+        self._reporting_db = PostgreSQLConnectionManager(self._reporting_config, 'reporting')
         self._redis = RedisConnectionManager(self._redis_config)
 
         # ── Reporting table columns (loaded at startup) ──────
         self._reporting_columns: Optional[set] = None
 
         # ── Contract cache (for join enrichment) ─────────────
-        # FIX 3.8: bounded LRU+TTL cache to prevent OOM
         self._contract_cache_max_size = 10000
         self._contract_cache: OrderedDict[str, Dict] = OrderedDict()
         self._contract_cache_time: Dict[str, float] = {}
@@ -120,33 +119,33 @@ class StreamingETLConsumer(BaseKafkaConsumer):
         """Build topic → config mapping."""
         p = self._topic_prefix
         return {
-            f'{p}.stgContract': TopicConfig(
-                'stgContract', insurance_type=None,
+            f'{p}.stgInsuranceContract': TopicConfig(
+                'stgInsuranceContract', insurance_type=None,
                 data_source='online', is_contract_master=True
             ),
-            f'{p}.stgContractObject': TopicConfig(
-                'stgContractObject', 'HEALTH', 'online'
+            f'{p}.stgInsuranceContractObject': TopicConfig(
+                'stgInsuranceContractObject', 'HEALTH', 'online'
             ),
-            f'{p}.stgContractObjectVehicle': TopicConfig(
-                'stgContractObjectVehicle', 'VEHICLE', 'online'
+            f'{p}.stgInsuranceContractObjectVehicle': TopicConfig(
+                'stgInsuranceContractObjectVehicle', 'VEHICLE', 'online'
             ),
-            f'{p}.stgContractObjectTravel': TopicConfig(
-                'stgContractObjectTravel', 'TRAVEL', 'online'
+            f'{p}.stgInsuranceContractObjectTravel': TopicConfig(
+                'stgInsuranceContractObjectTravel', 'TRAVEL', 'online'
             ),
-            f'{p}.stgContractObjectMoto': TopicConfig(
-                'stgContractObjectMoto', 'MOTO', 'online'
+            f'{p}.stgInsuranceContractObjectMoto': TopicConfig(
+                'stgInsuranceContractObjectMoto', 'MOTO', 'online'
             ),
-            f'{p}.stgContractObjectSocialInsurance': TopicConfig(
-                'stgContractObjectSocialInsurance', 'SOCIAL', 'online'
+            f'{p}.stgInsuranceContractObjectSocialInsurance': TopicConfig(
+                'stgInsuranceContractObjectSocialInsurance', 'SOCIAL', 'online'
             ),
-            f'{p}.stgContractObjectMedicalInsurance': TopicConfig(
-                'stgContractObjectMedicalInsurance', 'MEDICAL', 'online'
+            f'{p}.stgInsuranceContractObjectMedicalInsurance': TopicConfig(
+                'stgInsuranceContractObjectMedicalInsurance', 'MEDICAL', 'online'
             ),
-            f'{p}.stgContractObjectHouse': TopicConfig(
-                'stgContractObjectHouse', 'HOUSE', 'online'
+            f'{p}.stgInsuranceContractObjectHouse': TopicConfig(
+                'stgInsuranceContractObjectHouse', 'HOUSE', 'online'
             ),
-            f'{p}.stgContractObjectOffline': TopicConfig(
-                'stgContractObjectOffline', insurance_type=None,
+            f'{p}.stgInsuranceContractObjectOffline': TopicConfig(
+                'stgInsuranceContractObjectOffline', insurance_type=None,
                 data_source='offline'
             ),
         }
@@ -220,7 +219,7 @@ class StreamingETLConsumer(BaseKafkaConsumer):
 
         # Fetch from database
         result = self._staging_db.fetch_one(
-            "SELECT * FROM stgContract WHERE contractId = %s LIMIT 1",
+            'SELECT * FROM "stgInsuranceContract" WHERE "contractId" = %s LIMIT 1',
             [contract_id]
         )
         if result:
@@ -245,12 +244,10 @@ class StreamingETLConsumer(BaseKafkaConsumer):
         if not value:
             return ''
         s = str(value).strip()
-        # Already ISO: 2024-01-15 or 2024-01-15T00:00:00 or 2024-01-15 00:00:00
         if 'T' in s:
             s = s.split('T')[0]
         if ' ' in s:
             s = s.split(' ')[0]
-        # Debezium epoch-days → skip (handled differently)
         try:
             if s.isdigit() and len(s) <= 6:
                 from datetime import date, timedelta
@@ -272,7 +269,6 @@ class StreamingETLConsumer(BaseKafkaConsumer):
 
     def _extract_bk_dates_fee(self, data: Dict[str, Any]) -> tuple:
         """Extract and normalise the 3 new BK fields (startDate, endDate, feeInsurance) from a record."""
-        # Date field names vary per insurance type
         start_date = (
             data.get('contractStartDate')
             or data.get('contractObjectStartDate')
@@ -316,9 +312,6 @@ class StreamingETLConsumer(BaseKafkaConsumer):
         """
         Check if an online record with the same 7 business keys already exists.
         Used for offline-vs-online dedup (online wins policy).
-
-        Business keys (7): contractId + name + majorName + companyProviderName
-                           + startDate + endDate + feeInsurance
         """
         contract_id = data.get('contractId')
         major_name = data.get('majorName')
@@ -326,11 +319,11 @@ class StreamingETLConsumer(BaseKafkaConsumer):
         person_name = data.get('peopleName')
 
         if not all([contract_id, major_name, company, person_name]):
-            return False  # Missing keys — cannot safely deduplicate
+            return False
 
         start_date, end_date, fee = self._extract_bk_dates_fee(data)
 
-        # Try Redis first (fast O(1) check)
+        # Try Redis first
         if self._redis.is_connected:
             bk_key = self._build_online_bk_key(
                 contract_id, person_name, major_name, company,
@@ -339,21 +332,21 @@ class StreamingETLConsumer(BaseKafkaConsumer):
             if self._redis.exists(bk_key):
                 return True
 
-        # Fallback to SQL if Redis miss (cold start / Redis down)
+        # Fallback to SQL
         result = self._reporting_db.fetch_one(
-            """SELECT 1 FROM affina_reporting.contract
-                   WHERE data_source = 'online'
-                     AND contractId = %s
-                     AND peopleName = %s
-                     AND majorName = %s
-                     AND companyProviderName = %s
-                     AND (IFNULL(DATE(contractObjectStartDate), '') = %s OR %s = '')
-                     AND (IFNULL(DATE(contractObjectEndDate), '') = %s OR %s = '')
-                     AND CAST(IFNULL(feeInsurance, 0) AS SIGNED) = %s
+            """SELECT 1 FROM "reporting"."contract"
+                   WHERE "data_source" = 'online'
+                     AND "contractId" = %s
+                     AND "peopleName" = %s
+                     AND "majorName" = %s
+                     AND "companyProviderName" = %s
+                     AND (COALESCE(TO_CHAR("contractObjectStartDate", 'YYYY-MM-DD'), '') = %s OR %s = '')
+                     AND (COALESCE(TO_CHAR("contractObjectEndDate", 'YYYY-MM-DD'), '') = %s OR %s = '')
+                     AND CAST(COALESCE("feeInsurance", 0) AS NUMERIC) = %s
                    LIMIT 1""",
             [
                 contract_id, person_name, major_name, company,
-                start_date, start_date, end_date, end_date, fee
+                start_date, start_date, end_date, end_date, float(fee)
             ],
         )
         return result is not None
@@ -365,11 +358,7 @@ class StreamingETLConsumer(BaseKafkaConsumer):
     }
 
     def _resolve_medical_social_type(self, data: Dict[str, Any]) -> str:
-        """
-        Resolve 'MEDICAL_SOCIAL' → 'MEDICAL' or 'SOCIAL' by checking majorName.
-        The 'majorName' column (mapped from 'Sản phẩm') contains product names
-        like 'BHYTHGD 12 THÁNG' or 'BHXH TỰ NGUYỆN' that indicate the sub-type.
-        """
+        """Resolve 'MEDICAL_SOCIAL' → 'MEDICAL' or 'SOCIAL' by checking majorName."""
         major_name = str(data.get('majorName') or '').lower().strip()
         for ins_type, keywords in self._MEDICAL_SOCIAL_KEYWORDS.items():
             for kw in keywords:
@@ -390,30 +379,24 @@ class StreamingETLConsumer(BaseKafkaConsumer):
             self.logger.warning("No config for topic: %s", topic)
             return
 
-        # Extract operation and data
         op, data = DebeziumTransformer.extract_operation_and_data(message_value)
         if not op or not data:
             self.logger.debug("Skipping empty message from %s", topic)
             return
 
-        # Transform data
         transformed = DebeziumTransformer.transform_data(data)
 
-        # Handle delete: propagate to reporting table
         if op == 'd':
             self._handle_delete(topic_cfg, transformed)
             return
 
-        # Build reporting record
         record = self._build_reporting_record(topic_cfg, transformed, op)
         if not record:
-            return  # Contract master update or duplicate
+            return
 
-        # "Online wins": remove any offline row that matches the same business keys
         if topic_cfg.data_source == 'online':
             self._remove_conflicting_offline(record)
 
-        # Upsert to reporting
         success = self._upsert_to_reporting(record)
         if success:
             insurance_type = record.get('insuranceType', 'UNKNOWN')
@@ -426,12 +409,10 @@ class StreamingETLConsumer(BaseKafkaConsumer):
                 self._stats['records_updated'] += 1
 
             # Mark processed in Redis
-            # Extract 7-key BK components for Redis caching
             bk_name = record.get('peopleName') or ''
             bk_start, bk_end, bk_fee = self._extract_bk_dates_fee(record)
 
             if record.get('data_source') == 'offline':
-                # Offline: key by 7 business keys so replay detection works
                 redis_bk_key = self._build_offline_bk_key(
                     insurance_type,
                     record.get('contractId'), bk_name,
@@ -441,11 +422,9 @@ class StreamingETLConsumer(BaseKafkaConsumer):
                 if self._redis.is_connected:
                     self._redis.setex(redis_bk_key, 86400 * 7, "1")
             else:
-                # Online: key by contractObjectId (unique business ID)
                 cobj_id = record.get('contractObjectId') or record.get('contractId')
                 self._mark_processed(insurance_type, str(cobj_id))
 
-                # Also cache 7-key BK for fast offline-vs-online dedup check
                 bk_key = self._build_online_bk_key(
                     record.get('contractId'),
                     bk_name,
@@ -459,26 +438,19 @@ class StreamingETLConsumer(BaseKafkaConsumer):
                 op, topic_cfg.table, insurance_type
             )
         else:
-            self._stats['errors'] += 1
+            self._stats['errors'] = self._stats.get('errors', 0) + 1
             self.logger.error("[FAIL] Failed to process from %s", topic)
 
     def _handle_delete(self, topic_cfg: TopicConfig, data: Dict[str, Any]):
-        """
-        Propagate a delete event from staging to affina_reporting.contract.
-
-        For stgContract deletes  → delete every record with that contractId.
-        For stgContractObject*   → delete the specific contractObjectId row.
-        """
+        """Propagate a delete event from staging to reporting.contract."""
         if topic_cfg.is_contract_master:
-            # stgContract deleted → remove all reporting rows sharing that contractId
             contract_id = data.get('contractId')
             if not contract_id:
                 return
-            # Also evict from cache
             self._contract_cache.pop(contract_id, None)
             self._contract_cache_time.pop(contract_id, None)
             rows = self._reporting_db.execute_with_rowcount(
-                "DELETE FROM affina_reporting.contract WHERE contractId = %s",
+                'DELETE FROM "reporting"."contract" WHERE "contractId" = %s',
                 [contract_id],
             )
             self.logger.info(
@@ -486,7 +458,6 @@ class StreamingETLConsumer(BaseKafkaConsumer):
                 contract_id, rows or 0,
             )
         else:
-            # stgContractObject* deleted → remove the specific contractObjectId row
             pk_field = PRIMARY_KEYS.get(topic_cfg.table)
             contract_object_id = (
                 data.get('contractObjectId')
@@ -496,7 +467,7 @@ class StreamingETLConsumer(BaseKafkaConsumer):
             if not contract_object_id:
                 return
             rows = self._reporting_db.execute_with_rowcount(
-                "DELETE FROM affina_reporting.contract WHERE contractObjectId = %s",
+                'DELETE FROM "reporting"."contract" WHERE "contractObjectId" = %s',
                 [contract_object_id],
             )
             self.logger.info(
@@ -508,17 +479,10 @@ class StreamingETLConsumer(BaseKafkaConsumer):
         self, topic_cfg: TopicConfig,
         data: Dict[str, Any], operation: str,
     ) -> Optional[Dict[str, Any]]:
-        """
-        Build record for reporting table.
-
-        Returns None if:
-        - This is a contract master (just update cache)
-        - Record is a duplicate
-        """
+        """Build record for reporting table."""
         source_table = topic_cfg.table
         data_source = topic_cfg.data_source
 
-        # Skip contract master table (just update cache)
         if topic_cfg.is_contract_master:
             contract_id = data.get('contractId')
             if contract_id:
@@ -527,16 +491,13 @@ class StreamingETLConsumer(BaseKafkaConsumer):
             self.logger.debug("Updated contract cache for %s", contract_id)
             return None
 
-        # Determine insurance type
         insurance_type = topic_cfg.insurance_type
-        if not insurance_type and source_table == 'stgContractObjectOffline':
+        if not insurance_type and source_table == 'stgInsuranceContractObjectOffline':
             insurance_type = data.get('insuranceType', 'UNKNOWN')
 
-        # Resolve MEDICAL_SOCIAL → MEDICAL or SOCIAL using majorName keywords
         if insurance_type == 'MEDICAL_SOCIAL':
             insurance_type = self._resolve_medical_social_type(data)
 
-        # Get contract object ID for dedup
         pk_field = PRIMARY_KEYS.get(source_table)
         cobj_id = (
             data.get(pk_field)
@@ -544,8 +505,6 @@ class StreamingETLConsumer(BaseKafkaConsumer):
             or data.get('id')
         )
 
-        # Check duplicate (offline data): skip offline if same offline record was already
-        # processed (e.g. Kafka replay). Key is built from 7 business keys.
         if data_source == 'offline':
             bk_name = data.get('peopleName') or ''
             bk_start, bk_end, bk_fee = self._extract_bk_dates_fee(data)
@@ -561,9 +520,6 @@ class StreamingETLConsumer(BaseKafkaConsumer):
                 self._stats['records_skipped'] += 1
                 return None
 
-        # Check online-vs-offline dedup using 7 business keys:
-        # When an offline record arrives, verify no equivalent online record
-        # already exists in reporting (online wins policy).
         if data_source == 'offline' and self._has_online_duplicate(data):
             self.logger.info(
                 "[DEDUP] Skipped offline record %s — online version already exists "
@@ -574,35 +530,28 @@ class StreamingETLConsumer(BaseKafkaConsumer):
             self._stats['records_skipped'] += 1
             return None
 
-        # Build record
         record = dict(data)
 
-        # Map PK 'id' → 'contractObjectId' for tables with PK='id'
         if pk_field == 'id' and 'id' in record and 'contractObjectId' not in record:
             record['contractObjectId'] = record['id']
             del record['id']
 
-        # Add/override insurance type
         if insurance_type:
             record['insuranceType'] = insurance_type
 
-        # Add ETL metadata
         record['data_source'] = data_source
         record['source_table'] = source_table
         record['etl_batch_id'] = f"streaming_{datetime.now().strftime('%Y%m%d')}"
 
-        # For online data: join with contract master
         if data_source == 'online' and not topic_cfg.is_contract_master:
             contract_id = data.get('contractId')
             if contract_id:
                 contract_data = self._get_contract_data(contract_id)
                 if contract_data:
-                    # 1. First, bring in master contract amounts & status
                     for field in ['userId', 'contractStatus', 'amount', 'amountPay']:
                         if field in contract_data and field not in record:
                             record[field] = contract_data[field]
                     
-                    # 2. Extract payer info from stgContract (payer)
                     payer_name = contract_data.get('name')
                     payer_dob = contract_data.get('dob')
                     payer_gender = contract_data.get('gender')
@@ -611,12 +560,10 @@ class StreamingETLConsumer(BaseKafkaConsumer):
                     payer_email = contract_data.get('email')
                     payer_address = contract_data.get('address')
                     
-                    # 3. Apply Buyer-as-Beneficiary Fallback
-                    # Combine ALL insurances to strictly use people* columns.
                     if not record.get('peopleName') and payer_name:
                         record['peopleName'] = payer_name
                         if record.get('peopleRelationship') is None:
-                            record['peopleRelationship'] = 0  # 0 = Bản thân (Self)
+                            record['peopleRelationship'] = 0
 
                     if not record.get('peopleDob') and payer_dob:
                         record['peopleDob'] = payer_dob
@@ -631,19 +578,16 @@ class StreamingETLConsumer(BaseKafkaConsumer):
                     if not record.get('peopleAddress') and payer_address:
                         record['peopleAddress'] = payer_address
 
-        # 4. Map CDC online specific TRAVEL & MOTO generic "name" and "dob" columns into "people" columns
-        # Since stgContractObjectTravel and stgContractObjectMoto from CDC use name/dob/gender instead of peopleName
         if data_source == 'online' and insurance_type in ['TRAVEL', 'MOTO']:
             for src_field, tgt_field in [('name', 'peopleName'), ('dob', 'peopleDob'), ('gender', 'peopleGender'),
-                                        ('phone', 'peoplePhone'), ('email', 'peopleEmail'), ('license', 'peopleLicense'), 
-                                        ('licenseType', 'peopleLicenseType'), ('licenseFront', 'peopleLicenseFront'),
-                                        ('licenseBack', 'peopleLicenseBack'), ('address', 'peopleAddress'),
-                                        ('districtsCode', 'peopleDistrictsCode'), ('wardsCode', 'peopleWardsCode'),
-                                        ('street', 'peopleStreet')]:
+                                         ('phone', 'peoplePhone'), ('email', 'peopleEmail'), ('license', 'peopleLicense'), 
+                                         ('licenseType', 'peopleLicenseType'), ('licenseFront', 'peopleLicenseFront'),
+                                         ('licenseBack', 'peopleLicenseBack'), ('address', 'peopleAddress'),
+                                         ('districtsCode', 'peopleDistrictsCode'), ('wardsCode', 'peopleWardsCode'),
+                                         ('street', 'peopleStreet')]:
                 if src_field in record and not record.get(tgt_field):
                     record[tgt_field] = record.pop(src_field)
 
-        # Unify all variation of start/end dates into contractObjectStartDate and contractObjectEndDate
         start_date_val = record.get('contractObjectStartDate') or record.pop('contractStartDate', None) or record.pop('startDateJourney', None)
         if start_date_val:
             record['contractObjectStartDate'] = start_date_val
@@ -655,56 +599,46 @@ class StreamingETLConsumer(BaseKafkaConsumer):
         return record
 
     def _remove_conflicting_offline(self, record: Dict[str, Any]):
-        """
-        Delete any existing offline row that shares the same business keys as
-        an incoming online record. Implements the "online wins" dedup policy.
-
-        Business keys (7):
-            contractId + peopleName + majorName + companyProviderName
-            + startDate + endDate + feeInsurance
-            
-        NOTE: SQL uses the precise 7 keys.
-        """
+        """Delete any existing offline row that shares the same business keys as an incoming online record."""
         contract_id = record.get('contractId')
         major_name = record.get('majorName')
         company = record.get('companyProviderName')
         person_name = record.get('peopleName') or record.get('name')
 
         if not all([contract_id, major_name, company, person_name]):
-            return  # Insufficient info — skip to avoid false positives
+            return
 
         start_date, end_date, fee = self._extract_bk_dates_fee(record)
 
         rows = self._reporting_db.execute_with_rowcount(
-            """DELETE FROM affina_reporting.contract
-               WHERE data_source = 'offline'
-                 AND contractId = %s
-                 AND peopleName = %s
-                 AND majorName = %s
-                 AND companyProviderName = %s
-                 AND (IFNULL(DATE(contractObjectStartDate), '') = %s OR %s = '')
-                 AND (IFNULL(DATE(contractObjectEndDate), '') = %s OR %s = '')
-                 AND CAST(IFNULL(feeInsurance, 0) AS SIGNED) = %s""",
+            """DELETE FROM "reporting"."contract"
+               WHERE "data_source" = 'offline'
+                 AND "contractId" = %s
+                 AND "peopleName" = %s
+                 AND "majorName" = %s
+                 AND "companyProviderName" = %s
+                 AND (COALESCE(TO_CHAR("contractObjectStartDate", 'YYYY-MM-DD'), '') = %s OR %s = '')
+                 AND (COALESCE(TO_CHAR("contractObjectEndDate", 'YYYY-MM-DD'), '') = %s OR %s = '')
+                 AND CAST(COALESCE("feeInsurance", 0) AS NUMERIC) = %s""",
             [
                 contract_id, person_name, major_name, company,
-                start_date, start_date, end_date, end_date, fee
+                start_date, start_date, end_date, end_date, float(fee)
             ],
         )
         if rows and rows > 0:
             self.logger.info(
-                "[DEDUP] Removed %d offline row(s) superseded by online: "
-                "contractId=%s name=%s majorName=%s",
+                "[DEDUP] Removed %d offline row(s) superseded by online: contractId=%s name=%s majorName=%s",
                 rows, contract_id, person_name, major_name,
             )
 
     def _upsert_to_reporting(self, record: Dict[str, Any]) -> bool:
-        """Upsert record to affina_reporting.contract."""
+        """Upsert record to reporting.contract."""
         query, values = SQLQueryBuilder.build_reporting_upsert(
-            table='affina_reporting.contract',
+            table='reporting.contract',
             data=record,
             allowed_columns=self._reporting_columns,
             key_fields=['contractId', 'contractObjectId'],
-            exclude_fields=['id'],  # AUTO_INCREMENT in reporting
+            exclude_fields=['id'],
         )
         if not query or not values:
             self.logger.warning("No valid fields to insert after filtering")

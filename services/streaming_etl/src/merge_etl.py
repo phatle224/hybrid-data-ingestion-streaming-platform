@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Merge ETL Script - affina_staging → affina_reporting
-Merge online (CDC) + offline (Excel) data into ODS contract table.
-
-OOP Restructured:
-- Config-driven insurance type queries (eliminates 6 repetitive methods)
-- Uses shared MySQLConnectionManager for connection management
-- Uses shared RedisConnectionManager for optional dedup
-- Follows Template Method pattern for extract-and-load flow
+Merge ETL Script - staging → reporting
+Merge online (CDC) + offline (Excel) data into ODS contract table on PostgreSQL.
 """
 
 import os
@@ -16,8 +10,9 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from shared.configs import MySQLConfig, RedisConfig
-from shared.connections import MySQLConnectionManager, RedisConnectionManager
+from shared.configs import PostgreSQLConfig, RedisConfig
+from shared.connections import PostgreSQLConnectionManager, RedisConnectionManager
+from shared.query_builder import SQLQueryBuilder
 from shared.logger import create_logger
 
 logger = create_logger('merge_etl', 'logs/merge_etl.log')
@@ -30,284 +25,278 @@ logger = create_logger('merge_etl', 'logs/merge_etl.log')
 class InsuranceTypeQueryRegistry:
     """
     Registry of SQL extract queries per insurance type.
-    Centralises the 6 insurance-type-specific queries that were previously
-    duplicated across separate methods.
-
-    Each entry maps an insurance type to its SELECT query joining the
-    staging contract-object table with stgContract.
     """
 
     QUERIES: Dict[str, str] = {
         'TRAVEL': """
         SELECT
-            cot.id as contractObjectId,
-            c.contractId,
-            cot.name,
-            cot.companyProviderName,
-            'TRAVEL' as insuranceType,
-            cot.cardNumber,
-            cot.certificateNumberProvider,
-            cot.accountTPA,
-            c.userId,
-            cot.startDate as contractObjectStartDate,
-            cot.endDate as contractObjectEndDate,
-            cot.idProvider as contractObjectIdProvider,
-            cot.url as contractObjectUrl,
-            cot.programTypeName,
-            cot.programTypeId,
-            cot.programId,
-            cot.programName,
-            cot.packageId,
-            cot.packageName,
-            cot.feeMainBenefit,
-            cot.feeInsurance,
-            cot.termsId,
-            cot.majorName,
-            cot.dob,
-            cot.gender,
-            cot.phone,
-            cot.email,
-            cot.license,
-            cot.address,
-            cot.nationality,
-            cot.destination,
-            cot.journey,
-            cot.startDateJourney,
-            cot.endDateJourney,
-            cot.adults,
-            cot.children,
-            cot.payerName,
-            cot.createdAt,
-            cot.modifiedAt
-        FROM affina_staging.stgContractObjectTravel cot
-        INNER JOIN affina_staging.stgContract c ON cot.contractId = c.contractId
+            cot."id" as "contractObjectId",
+            c."contractId",
+            cot."name",
+            cot."companyProviderName",
+            'TRAVEL' as "insuranceType",
+            cot."cardNumber",
+            cot."certificateNumberProvider",
+            cot."accountTPA",
+            c."userId",
+            cot."startDate" as "contractObjectStartDate",
+            cot."endDate" as "contractObjectEndDate",
+            cot."idProvider" as "contractObjectIdProvider",
+            cot."url" as "contractObjectUrl",
+            cot."programTypeName",
+            cot."programTypeId",
+            cot."programId",
+            cot."programName",
+            cot."packageId",
+            cot."packageName",
+            cot."feeMainBenefit",
+            cot."feeInsurance",
+            cot."termsId",
+            cot."majorName",
+            cot."dob",
+            cot."gender",
+            cot."phone",
+            cot."email",
+            cot."license",
+            cot."address",
+            cot."nationality",
+            cot."destination",
+            cot."journey",
+            cot."startDateJourney",
+            cot."endDateJourney",
+            cot."adults",
+            cot."children",
+            cot."payerName",
+            cot."createdAt",
+            cot."modifiedAt"
+        FROM "stgInsuranceContractObjectTravel" cot
+        INNER JOIN "stgInsuranceContract" c ON cot."contractId" = c."contractId"
         """,
 
         'VEHICLE': """
         SELECT
-            cov.contractObjectId,
-            c.contractId,
-            cov.peopleName,
-            cov.companyProviderName,
-            'VEHICLE' as insuranceType,
-            cov.cardNumber,
-            cov.certificateNumberProvider,
-            cov.accountTPA,
-            c.userId,
-            cov.contractObjectStartDate,
-            cov.contractObjectEndDate,
-            cov.contractObjectIdProvider,
-            cov.contractObjectUrl,
-            cov.contractObjectSmeStatus,
-            cov.programTypeName,
-            cov.programTypeId,
-            cov.programId,
-            cov.programName,
-            cov.packageId,
-            cov.packageName,
-            cov.feeMainBenefit,
-            cov.feeInsurance,
-            cov.termsId,
-            cov.majorName,
-            cov.peopleRelationship,
-            cov.peopleDob,
-            cov.peopleGender,
-            cov.peoplePhone,
-            cov.peopleEmail,
-            cov.peopleLicense,
-            cov.peopleAddress,
-            cov.vehicleId,
-            cov.createdAt,
-            cov.modifiedAt
-        FROM affina_staging.stgContractObjectVehicle cov
-        INNER JOIN affina_staging.stgContract c ON cov.contractId = c.contractId
+            cov."contractObjectId",
+            c."contractId",
+            cov."peopleName",
+            cov."companyProviderName",
+            'VEHICLE' as "insuranceType",
+            cov."cardNumber",
+            cov."certificateNumberProvider",
+            cov."accountTPA",
+            c."userId",
+            cov."contractObjectStartDate",
+            cov."contractObjectEndDate",
+            cov."contractObjectIdProvider",
+            cov."contractObjectUrl",
+            cov."contractObjectSmeStatus",
+            cov."programTypeName",
+            cov."programTypeId",
+            cov."programId",
+            cov."programName",
+            cov."packageId",
+            cov."packageName",
+            cov."feeMainBenefit",
+            cov."feeInsurance",
+            cov."termsId",
+            cov."majorName",
+            cov."peopleRelationship",
+            cov."peopleDob",
+            cov."peopleGender",
+            cov."peoplePhone",
+            cov."peopleEmail",
+            cov."peopleLicense",
+            cov."peopleAddress",
+            cov."vehicleId",
+            cov."createdAt",
+            cov."modifiedAt"
+        FROM "stgInsuranceContractObjectVehicle" cov
+        INNER JOIN "stgInsuranceContract" c ON cov."contractId" = c."contractId"
         """,
 
         'MOTO': """
         SELECT
-            com.id as contractObjectId,
-            c.contractId,
-            com.name,
-            com.companyProviderName,
-            'MOTO' as insuranceType,
-            com.cardNumber,
-            com.certificateNumberProvider,
-            com.accountTPA,
-            c.userId,
-            com.startDate as contractObjectStartDate,
-            com.endDate as contractObjectEndDate,
-            com.idProvider as contractObjectIdProvider,
-            com.url as contractObjectUrl,
-            com.programTypeName,
-            com.programTypeId,
-            com.programId,
-            com.programName,
-            com.packageId,
-            com.packageName,
-            com.feeMainBenefit,
-            com.feeInsurance,
-            com.termsId,
-            com.majorName,
-            com.dob,
-            com.gender,
-            com.phone,
-            com.email,
-            com.license,
-            com.address,
-            com.licensePlates,
-            com.chassisNumber,
-            com.engineNumber,
-            com.type,
-            com.createdAt,
-            com.modifiedAt
-        FROM affina_staging.stgContractObjectMoto com
-        INNER JOIN affina_staging.stgContract c ON com.contractId = c.contractId
+            com."id" as "contractObjectId",
+            c."contractId",
+            com."name",
+            com."companyProviderName",
+            'MOTO' as "insuranceType",
+            com."cardNumber",
+            com."certificateNumberProvider",
+            com."accountTPA",
+            c."userId",
+            com."startDate" as "contractObjectStartDate",
+            com."endDate" as "contractObjectEndDate",
+            com."idProvider" as "contractObjectIdProvider",
+            com."url" as "contractObjectUrl",
+            com."programTypeName",
+            com."programTypeId",
+            com."programId",
+            com."programName",
+            com."packageId",
+            com."packageName",
+            com."feeMainBenefit",
+            com."feeInsurance",
+            com."termsId",
+            com."majorName",
+            com."dob",
+            com."gender",
+            com."phone",
+            com."email",
+            com."license",
+            com."address",
+            com."licensePlates",
+            com."chassisNumber",
+            com."engineNumber",
+            com."type",
+            com."createdAt",
+            com."modifiedAt"
+        FROM "stgInsuranceContractObjectMoto" com
+        INNER JOIN "stgInsuranceContract" c ON com."contractId" = c."contractId"
         """,
 
         'HEALTH': """
         SELECT
-            coh.contractObjectId,
-            c.contractId,
-            coh.peopleName,
-            coh.companyProviderName,
-            'HEALTH' as insuranceType,
-            coh.cardNumber,
-            coh.certificateNumberProvider,
-            coh.accountTPA,
-            c.userId,
-            coh.contractObjectStartDate,
-            coh.contractObjectEndDate,
-            coh.contractObjectSmeStatus,
-            coh.contractIndividualStatus,
-            coh.programTypeName,
-            coh.programTypeId,
-            coh.programId,
-            coh.programName,
-            coh.packageId,
-            coh.packageName,
-            coh.feeMainBenefit,
-            coh.feeSideBenefit,
-            coh.feeInsurance,
-            coh.fromAge,
-            coh.toAge,
-            coh.termsId,
-            coh.majorName,
-            coh.peopleDob,
-            coh.peopleGender,
-            coh.peoplePhone,
-            coh.peopleEmail,
-            coh.peopleLicense,
-            coh.peopleAddress,
-            coh.peopleRelationship,
-            coh.createdAt,
-            coh.modifiedAt,
-            c.contractStatus,
-            c.contractStartDate,
-            c.contractEndDate,
-            c.amount,
-            c.amountPay
-        FROM affina_staging.stgContractObject coh
-        INNER JOIN affina_staging.stgContract c ON coh.contractId = c.contractId
+            coh."contractObjectId",
+            c."contractId",
+            coh."peopleName",
+            coh."companyProviderName",
+            'HEALTH' as "insuranceType",
+            coh."cardNumber",
+            coh."certificateNumberProvider",
+            coh."accountTPA",
+            c."userId",
+            coh."contractObjectStartDate",
+            coh."contractObjectEndDate",
+            coh."contractObjectSmeStatus",
+            coh."contractIndividualStatus",
+            coh."programTypeName",
+            coh."programTypeId",
+            coh."programId",
+            coh."programName",
+            coh."packageId",
+            coh."packageName",
+            coh."feeMainBenefit",
+            coh."feeSideBenefit",
+            coh."feeInsurance",
+            coh."fromAge",
+            coh."toAge",
+            coh."termsId",
+            coh."majorName",
+            coh."peopleDob",
+            coh."peopleGender",
+            coh."peoplePhone",
+            coh."peopleEmail",
+            coh."peopleLicense",
+            coh."peopleAddress",
+            coh."peopleRelationship",
+            coh."createdAt",
+            coh."modifiedAt",
+            c."contractStatus",
+            c."contractStartDate",
+            c."contractEndDate",
+            c."amount",
+            c."amountPay"
+        FROM "stgInsuranceContractObject" coh
+        INNER JOIN "stgInsuranceContract" c ON coh."contractId" = c."contractId"
         """,
 
         'SOCIAL': """
         SELECT
-            cos.contractObjectId,
-            c.contractId,
-            cos.peopleName,
-            cos.companyProviderName,
-            'SOCIAL' as insuranceType,
-            cos.cardNumber,
-            cos.certificateNumberProvider,
-            cos.accountTPA,
-            c.userId,
-            cos.contractObjectStartDate,
-            cos.contractObjectEndDate,
-            cos.contractObjectSmeStatus,
-            cos.contractIndividualStatus,
-            cos.programTypeName,
-            cos.programTypeId,
-            cos.programId,
-            cos.programName,
-            cos.packageId,
-            cos.packageName,
-            cos.feeMainBenefit,
-            cos.feeSideBenefit,
-            cos.feeInsurance,
-            cos.fromAge,
-            cos.toAge,
-            cos.termsId,
-            cos.majorName,
-            cos.peopleDob,
-            cos.peopleGender,
-            cos.peoplePhone,
-            cos.peopleEmail,
-            cos.peopleLicense,
-            cos.peopleAddress,
-            cos.peopleRelationship,
-            cos.socialId,
-            cos.monthlyIncome,
-            cos.paymentPeriod,
-            cos.createdAt,
-            cos.modifiedAt
-        FROM affina_staging.stgContractObjectSocialInsurance cos
-        INNER JOIN affina_staging.stgContract c ON cos.contractId = c.contractId
+            cos."contractObjectId",
+            c."contractId",
+            cos."peopleName",
+            cos."companyProviderName",
+            'SOCIAL' as "insuranceType",
+            cos."cardNumber",
+            cos."certificateNumberProvider",
+            cos."accountTPA",
+            c."userId",
+            cos."contractObjectStartDate",
+            cos."contractObjectEndDate",
+            cos."contractObjectSmeStatus",
+            cos."contractIndividualStatus",
+            cos."programTypeName",
+            cos."programTypeId",
+            cos."programId",
+            cos."programName",
+            cos."packageId",
+            cos."packageName",
+            cos."feeMainBenefit",
+            cos."feeSideBenefit",
+            cos."feeInsurance",
+            cos."fromAge",
+            cos."toAge",
+            cos."termsId",
+            cos."majorName",
+            cos."peopleDob",
+            cos."peopleGender",
+            cos."peoplePhone",
+            cos."peopleEmail",
+            cos."peopleLicense",
+            cos."peopleAddress",
+            cos."peopleRelationship",
+            cos."socialId",
+            cos."monthlyIncome",
+            cos."paymentPeriod",
+            cos."createdAt",
+            cos."modifiedAt"
+        FROM "stgInsuranceContractObjectSocialInsurance" cos
+        INNER JOIN "stgInsuranceContract" c ON cos."contractId" = c."contractId"
         """,
 
         'MEDICAL': """
         SELECT
-            com.contractObjectId,
-            c.contractId,
-            com.peopleName,
-            com.companyProviderName,
-            'MEDICAL' as insuranceType,
-            com.cardNumber,
-            com.certificateNumberProvider,
-            com.accountTPA,
-            c.userId,
-            com.contractObjectStartDate,
-            com.contractObjectEndDate,
-            com.contractObjectSmeStatus,
-            com.contractIndividualStatus,
-            com.programTypeName,
-            com.programTypeId,
-            com.programId,
-            com.programName,
-            com.packageId,
-            com.packageName,
-            com.feeMainBenefit,
-            com.feeSideBenefit,
-            com.feeInsurance,
-            com.fromAge,
-            com.toAge,
-            com.termsId,
-            com.majorName,
-            com.peopleDob,
-            com.peopleGender,
-            com.peoplePhone,
-            com.peopleEmail,
-            com.peopleLicense,
-            com.peopleAddress,
-            com.peopleRelationship,
-            com.medicalId,
-            com.hospitalCode,
-            com.hospitalName,
-            com.nation,
-            com.createdAt,
-            com.modifiedAt
-        FROM affina_staging.stgContractObjectMedicalInsurance com
-        INNER JOIN affina_staging.stgContract c ON com.contractId = c.contractId
+            com."contractObjectId",
+            c."contractId",
+            com."peopleName",
+            com."companyProviderName",
+            'MEDICAL' as "insuranceType",
+            com."cardNumber",
+            com."certificateNumberProvider",
+            com."accountTPA",
+            c."userId",
+            com."contractObjectStartDate",
+            com."contractObjectEndDate",
+            com."contractObjectSmeStatus",
+            com."contractIndividualStatus",
+            com."programTypeName",
+            com."programTypeId",
+            com."programId",
+            com."programName",
+            com."packageId",
+            com."packageName",
+            com."feeMainBenefit",
+            com."feeSideBenefit",
+            com."feeInsurance",
+            com."fromAge",
+            com."toAge",
+            com."termsId",
+            com."majorName",
+            com."peopleDob",
+            com."peopleGender",
+            com."peoplePhone",
+            com."peopleEmail",
+            com."peopleLicense",
+            com."peopleAddress",
+            com."peopleRelationship",
+            com."medicalId",
+            com."hospitalCode",
+            com."hospitalName",
+            com."nation",
+            com."createdAt",
+            com."modifiedAt"
+        FROM "stgInsuranceContractObjectMedicalInsurance" com
+        INNER JOIN "stgInsuranceContract" c ON com."contractId" = c."contractId"
         """,
     }
 
-    # Map insurance type → source table name (for ETL metadata)
     SOURCE_TABLES: Dict[str, str] = {
-        'TRAVEL': 'stgContractObjectTravel',
-        'VEHICLE': 'stgContractObjectVehicle',
-        'MOTO': 'stgContractObjectMoto',
-        'HEALTH': 'stgContractObject',
-        'SOCIAL': 'stgContractObjectSocialInsurance',
-        'MEDICAL': 'stgContractObjectMedicalInsurance',
+        'TRAVEL': 'stgInsuranceContractObjectTravel',
+        'VEHICLE': 'stgInsuranceContractObjectVehicle',
+        'MOTO': 'stgInsuranceContractObjectMoto',
+        'HEALTH': 'stgInsuranceContractObject',
+        'SOCIAL': 'stgInsuranceContractObjectSocialInsurance',
+        'MEDICAL': 'stgInsuranceContractObjectMedicalInsurance',
     }
 
     @classmethod
@@ -322,45 +311,26 @@ class InsuranceTypeQueryRegistry:
 
 class ReportingRecordLoader:
     """
-    Handles INSERT INTO affina_reporting.contract with ON DUPLICATE KEY UPDATE.
-    Encapsulates the SQL generation for idempotent upserts into the reporting table.
+    Handles INSERT INTO reporting.contract with ON CONFLICT.
     """
-
-    # Columns excluded from the UPDATE clause (primary keys / immutable)
-    IMMUTABLE_COLUMNS = frozenset(['contractId', 'contractObjectId', 'id'])
 
     @staticmethod
     def insert(cursor, record: Dict):
         """
-        Insert record into affina_reporting.contract.
-        Uses ON DUPLICATE KEY UPDATE for idempotent inserts.
-
-        Args:
-            cursor: MySQL cursor
-            record: Dict of column -> value
+        Insert record into reporting.contract.
         """
-        # Filter out None values and the offline_id helper field
+        # Filter out None values and offline_id helper field
         fields = {k: v for k, v in record.items() if v is not None and k != 'offline_id'}
 
-        columns = list(fields.keys())
-        placeholders = ['%s'] * len(columns)
-        values = [fields[col] for col in columns]
-
-        update_clauses = [
-            f"`{col}` = VALUES(`{col}`)"
-            for col in columns
-            if col not in ReportingRecordLoader.IMMUTABLE_COLUMNS
-        ]
-
-        query = f"""
-            INSERT INTO affina_reporting.contract
-            ({', '.join(f'`{col}`' for col in columns)})
-            VALUES ({', '.join(placeholders)})
-            ON DUPLICATE KEY UPDATE
-                {', '.join(update_clauses)},
-                etl_loaded_at = NOW()
-        """
-        cursor.execute(query, values)
+        query, values = SQLQueryBuilder.build_reporting_upsert(
+            table='reporting.contract',
+            data=fields,
+            key_fields=['contractId', 'contractObjectId'],
+            exclude_fields=['id'],
+            add_etl_timestamp=True
+        )
+        if query:
+            cursor.execute(query, values)
 
 
 # =============================================================================
@@ -369,65 +339,42 @@ class ReportingRecordLoader:
 
 class ETLExecutor:
     """
-    Executes extract-and-load for a single insurance type.
-    Reads rows from staging via a cursor and writes them to the reporting
-    table using ReportingRecordLoader.
+    Executes extract-and-load for a single insurance type on PostgreSQL.
     """
 
-    def __init__(self, staging_db: MySQLConnectionManager, reporting_db: MySQLConnectionManager, batch_id: str):
+    def __init__(self, staging_db: PostgreSQLConnectionManager, reporting_db: PostgreSQLConnectionManager, batch_id: str):
         self._staging_db = staging_db
         self._reporting_db = reporting_db
         self._batch_id = batch_id
 
     def extract_and_load(self, insurance_type: str, query: str, source_table: str) -> int:
-        """
-        Run an extract query on staging and load results into reporting.
-
-        Args:
-            insurance_type: e.g. 'TRAVEL', 'HEALTH'
-            query: SQL SELECT to run against staging
-            source_table: staging table name (for ETL metadata)
-
-        Returns:
-            Number of records inserted
-        """
         count = 0
-        staging_cursor = None
-        reporting_cursor = None
-
         try:
             self._staging_db.ensure_connected()
             self._reporting_db.ensure_connected()
 
-            staging_cursor = self._staging_db.create_cursor(dictionary=True)
-            staging_cursor.execute(query)
+            rows = self._staging_db.fetch_all(query)
 
-            reporting_cursor = self._reporting_db.create_cursor(dictionary=False)
+            with self._reporting_db.connection.cursor() as cursor:
+                for row in rows:
+                    try:
+                        row['data_source'] = 'online'
+                        row['source_table'] = source_table
+                        row['etl_batch_id'] = self._batch_id
 
-            for row in staging_cursor:
-                try:
-                    # Add ETL metadata
-                    row['data_source'] = 'online'
-                    row['source_table'] = source_table
-                    row['etl_batch_id'] = self._batch_id
+                        ReportingRecordLoader.insert(cursor, row)
+                        count += 1
+                    except Exception as e:
+                        logger.error("Error inserting %s record: %s", insurance_type, e)
 
-                    ReportingRecordLoader.insert(reporting_cursor, row)
-                    count += 1
-                except Exception as e:
-                    logger.error("Error inserting %s record: %s", insurance_type, e)
+                self._reporting_db.connection.commit()
 
-            self._reporting_db.commit()
             logger.info("  %s (%s): %d records", insurance_type, source_table, count)
             return count
 
         except Exception as e:
             logger.error("Error in extract_and_load for %s: %s", insurance_type, e)
             raise
-        finally:
-            if staging_cursor:
-                staging_cursor.close()
-            if reporting_cursor:
-                reporting_cursor.close()
 
 
 # =============================================================================
@@ -436,19 +383,7 @@ class ETLExecutor:
 
 class ContractMergeETL:
     """
-    ETL class to merge data from staging → reporting.
-
-    Flow:
-        1. Extract online data: JOIN stgContract + stgContractObject* per type
-        2. Extract offline data: stgContractObjectOffline (post-Redis dedup)
-        3. Transform: Map fields to reporting schema
-        4. Load: INSERT into affina_reporting.contract
-
-    OOP improvements over original:
-        - Config-driven insurance type queries (InsuranceTypeQueryRegistry)
-        - Separated record loading (ReportingRecordLoader)
-        - Separated execution (ETLExecutor)
-        - Uses shared connection managers
+    ETL class to merge data from staging → reporting in PostgreSQL.
     """
 
     def __init__(
@@ -457,8 +392,8 @@ class ContractMergeETL:
         reporting_config: Dict,
         redis_config: Optional[Dict] = None,
     ):
-        self._staging_db = MySQLConnectionManager(staging_config, 'staging')
-        self._reporting_db = MySQLConnectionManager(reporting_config, 'reporting')
+        self._staging_db = PostgreSQLConnectionManager(staging_config, 'staging')
+        self._reporting_db = PostgreSQLConnectionManager(reporting_config, 'reporting')
         self._redis = None
         self._batch_id = datetime.now().strftime('%Y%m%d_%H%M%S')
 
@@ -467,17 +402,7 @@ class ContractMergeETL:
             self._redis = RedisConnectionManager(redis_config)
             self._redis.connect()
 
-    # -----------------------------------------------------------------
-    # Public API
-    # -----------------------------------------------------------------
-
     def run_full_merge(self) -> Dict:
-        """
-        Run complete merge ETL process.
-
-        Returns:
-            Dict with batch statistics
-        """
         logger.info("Starting full merge ETL - Batch ID: %s", self._batch_id)
         start_time = datetime.now()
 
@@ -523,15 +448,7 @@ class ContractMergeETL:
             if self._redis:
                 self._redis.close()
 
-    # -----------------------------------------------------------------
-    # Online Data Processing (config-driven loop)
-    # -----------------------------------------------------------------
-
     def _process_online_data(self) -> Dict[str, int]:
-        """
-        Process all insurance types from staging via config-driven loop.
-        Replaces 6 separate _extract_and_load_XXX() methods.
-        """
         executor = ETLExecutor(self._staging_db, self._reporting_db, self._batch_id)
         stats: Dict[str, int] = {}
 
@@ -542,46 +459,32 @@ class ContractMergeETL:
 
         return stats
 
-    # -----------------------------------------------------------------
-    # Offline Data Processing
-    # -----------------------------------------------------------------
-
     def _process_offline_data(self) -> Dict[str, int]:
-        """
-        Process offline data from stgContractObjectOffline.
-
-        Returns:
-            Dict with count per insurance type
-        """
         stats: Dict[str, int] = {}
 
         try:
             self._staging_db.ensure_connected()
             self._reporting_db.ensure_connected()
 
-            staging_cursor = self._staging_db.create_cursor(dictionary=True)
-            staging_cursor.execute("SELECT * FROM affina_staging.stgContractObjectOffline")
+            rows = self._staging_db.fetch_all('SELECT * FROM "stgInsuranceContractObjectOffline"')
 
-            reporting_cursor = self._reporting_db.create_cursor(dictionary=False)
+            with self._reporting_db.connection.cursor() as cursor:
+                for row in rows:
+                    try:
+                        insurance_type = row.get('insuranceType', 'UNKNOWN')
 
-            for row in staging_cursor:
-                try:
-                    insurance_type = row.get('insuranceType', 'UNKNOWN')
+                        # Transform: add ETL metadata
+                        row['data_source'] = 'offline'
+                        row['source_table'] = 'stgInsuranceContractObjectOffline'
+                        row['etl_batch_id'] = self._batch_id
 
-                    # Transform: add ETL metadata
-                    row['data_source'] = 'offline'
-                    row['source_table'] = 'stgContractObjectOffline'
-                    row['etl_batch_id'] = self._batch_id
+                        ReportingRecordLoader.insert(cursor, row)
+                        stats[insurance_type] = stats.get(insurance_type, 0) + 1
 
-                    ReportingRecordLoader.insert(reporting_cursor, row)
-                    stats[insurance_type] = stats.get(insurance_type, 0) + 1
+                    except Exception as e:
+                        logger.error("Error processing offline record %s: %s", row.get('offline_id'), e)
 
-                except Exception as e:
-                    logger.error("Error processing offline record %s: %s", row.get('offline_id'), e)
-
-            self._reporting_db.commit()
-            staging_cursor.close()
-            reporting_cursor.close()
+                self._reporting_db.connection.commit()
 
             logger.info("  Offline loaded: %s", stats)
             return stats
@@ -590,25 +493,16 @@ class ContractMergeETL:
             logger.error("Error processing offline data: %s", e)
             raise
 
-    # -----------------------------------------------------------------
-    # Utility
-    # -----------------------------------------------------------------
-
     def truncate_reporting_table(self):
         """Truncate reporting table (use with caution!)."""
         self._reporting_db.ensure_connected()
-        self._reporting_db.execute("TRUNCATE TABLE affina_reporting.contract")
+        self._reporting_db.execute('TRUNCATE TABLE "reporting"."contract"')
         logger.warning("Reporting table truncated")
 
 
-# =============================================================================
-# CLI Entry Point
-# =============================================================================
-
 def main():
-    """Main function for running merge ETL."""
-    staging_config = MySQLConfig(database='affina_staging').get_config()
-    reporting_config = MySQLConfig(database='affina_reporting').get_config()
+    staging_config = PostgreSQLConfig(database_env='DB_DATABASE').get_config()
+    reporting_config = PostgreSQLConfig(database_env='DB_DATABASE').get_config()
     redis_config = RedisConfig().get_config()
 
     etl = ContractMergeETL(staging_config, reporting_config, redis_config)

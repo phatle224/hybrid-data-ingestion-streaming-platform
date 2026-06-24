@@ -1,11 +1,11 @@
 """
-Event Publisher (Production) - Monitors affina_staging → publishes CDC events to RabbitMQ.
+Event Publisher (Production) - Monitors staging → publishes CDC events to RabbitMQ on PostgreSQL.
 
 This is the standalone producer deployed via rabbitmq_producer/Dockerfile.
 It does NOT share consumer/shared/ because of a separate Docker build context.
 
 OOP Restructured (self-contained):
-- Extracted config classes (MySQLConfig, RabbitMQConfig)
+- Extracted config classes (PostgreSQLConfig, RabbitMQConfig)
 - Extracted TableMonitorConfig for declarative table definitions
 - Separated concerns: CDCEventBuilder, TableChangeMonitor, DuplicateTracker
 - Preserved: pytz timezone handling, >= comparison, dedup tracking, autocommit
@@ -13,7 +13,9 @@ OOP Restructured (self-contained):
 
 import pika
 import json
-import mysql.connector
+import psycopg2
+from psycopg2.extras import DictCursor
+from psycopg2 import Error as PostgreSQLError
 from datetime import datetime, timedelta
 import time
 import os
@@ -49,17 +51,18 @@ class AppConfig:
         return cast(val)
 
 
-class MySQLConfig:
-    """MySQL configuration with autocommit support."""
+class PostgreSQLConfig:
+    """PostgreSQL configuration with autocommit support."""
 
-    def __init__(self, database: str, autocommit: bool = True):
+    def __init__(self, database_env: str = 'DB_DATABASE', autocommit: bool = True):
         self.config = {
-            'host': AppConfig.env('MYSQL_HOST', '172.16.10.32'),
-            'user': AppConfig.env('MYSQL_USER', 'aff_admin'),
-            'password': AppConfig.env('MYSQL_PASSWORD', 'affina_poOB7G9A51'),
-            'database': database,
-            'autocommit': autocommit,
+            'host': AppConfig.env('DB_HOST', AppConfig.env('MYSQL_HOST', 'localhost')),
+            'port': AppConfig.env('DB_PORT', AppConfig.env('MYSQL_PORT', 5432, int), int),
+            'user': AppConfig.env('DB_USER', AppConfig.env('MYSQL_USER', 'postgres')),
+            'password': AppConfig.env('DB_PASSWORD', AppConfig.env('MYSQL_PASSWORD', 'postgres')),
+            'database': AppConfig.env(database_env, AppConfig.env('MYSQL_DATABASE', 'postgres')),
         }
+        self.autocommit = autocommit
 
     def get_config(self) -> Dict:
         return self.config.copy()
@@ -102,8 +105,8 @@ class TableMonitorConfig:
 
 # Tables to monitor
 MONITORED_TABLES = [
-    TableMonitorConfig('stgClaim', 'id', 'modifiedDate', 'claim'),
-    TableMonitorConfig('stgContract', 'contractId', 'modifiedDate', 'contract'),
+    TableMonitorConfig('stgInsuranceClaim', 'id', 'modifiedDate', 'claim'),
+    TableMonitorConfig('stgInsuranceContract', 'contractId', 'modifiedDate', 'contract'),
 ]
 
 
@@ -155,42 +158,63 @@ class CDCEventBuilder:
             'operation': operation,
             'record_id': record_id,
             'timestamp': datetime.now(VN_TIMEZONE).isoformat(),
-            'data': row,
+            'data': dict(row),
         }
 
     @staticmethod
     def determine_operation(row: Dict, timestamp_column: str) -> str:
-        if 'created_at' in row and row['created_at'] == row.get(timestamp_column):
+        if 'createdAt' in row and row['createdAt'] == row.get(timestamp_column):
             return 'insert'
         return 'update'
 
 
 # =============================================================================
-# MySQL Connection Manager (self-contained)
+# PostgreSQL Connection Manager (self-contained)
 # =============================================================================
 
-class MySQLConnectionManager:
-    """MySQL connection with reconnect."""
+class PostgreSQLConnectionManager:
+    """PostgreSQL connection with reconnect."""
 
-    def __init__(self, config: Dict, name: str = 'default'):
+    def __init__(self, config: Dict, name: str = 'default', autocommit: bool = True):
         self._config = config
         self._name = name
         self._conn = None
+        self._autocommit = autocommit
 
     @property
     def is_connected(self) -> bool:
-        return self._conn is not None and self._conn.is_connected()
+        if self._conn is None:
+            return False
+        try:
+            with self._conn.cursor() as cur:
+                cur.execute('SELECT 1')
+            return True
+        except Exception:
+            return False
 
     def connect(self, max_retries: int = 3):
         for attempt in range(max_retries):
             try:
-                if self._conn and self._conn.is_connected():
-                    self._conn.close()
-                self._conn = mysql.connector.connect(**self._config)
-                logger.info("[OK] Connected to MySQL: %s", self._config.get('database'))
+                if self._conn:
+                    try:
+                        self._conn.close()
+                    except Exception:
+                        pass
+                self._conn = psycopg2.connect(
+                    **self._config,
+                    cursor_factory=DictCursor
+                )
+                self._conn.autocommit = self._autocommit
+                with self._conn.cursor() as cur:
+                    if self._name == 'staging':
+                        cur.execute('SET search_path TO staging, public')
+                    elif self._name == 'reporting':
+                        cur.execute('SET search_path TO reporting, public')
+                logger.info("[OK] Connected to PostgreSQL: %s (role: %s)",
+                            self._config.get('database'), self._name)
                 return
             except Exception as e:
-                logger.error("[ERROR] MySQL %s failed (attempt %d/%d): %s",
+                logger.error("[ERROR] PostgreSQL %s failed (attempt %d/%d): %s",
                              self._name, attempt + 1, max_retries, e)
                 if attempt < max_retries - 1:
                     time.sleep(5)
@@ -201,14 +225,15 @@ class MySQLConnectionManager:
         if not self.is_connected:
             self.connect()
 
-    def cursor(self, dictionary: bool = True):
+    def cursor(self):
         self.ensure_connected()
-        return self._conn.cursor(dictionary=dictionary)
+        return self._conn.cursor()
 
     def close(self):
-        if self.is_connected:
+        if self._conn:
             self._conn.close()
-            logger.info("[OK] MySQL %s closed", self._name)
+            self._conn = None
+            logger.info("[OK] PostgreSQL %s closed", self._name)
 
 
 # =============================================================================
@@ -310,7 +335,7 @@ class RabbitMQConnectionManager:
 class TableChangeMonitor:
     """Monitors a single table for CDC changes using >= comparison and dedup tracking."""
 
-    def __init__(self, db: MySQLConnectionManager, config: TableMonitorConfig,
+    def __init__(self, db: PostgreSQLConnectionManager, config: TableMonitorConfig,
                  batch_size: int = 100):
         self._db = db
         self._config = config
@@ -325,30 +350,33 @@ class TableChangeMonitor:
     def check_changes(self) -> List[Dict]:
         """Poll table for changes. Returns list of {routing_key, event} dicts."""
         self._db.ensure_connected()
-        cursor = self._db.cursor(dictionary=True)
+        cursor = self._db.cursor()
         events = []
 
         try:
-            # Check existence
-            cursor.execute(f"SHOW TABLES LIKE '{self._config.table_name}'")
+            # Check existence in current schema
+            cursor.execute(
+                """SELECT 1 FROM information_schema.tables 
+                   WHERE table_schema = %s AND table_name = %s""",
+                [self._db._name, self._config.table_name]
+            )
             if not cursor.fetchone():
                 cursor.close()
                 return events
 
             last_sync = self._last_sync or (datetime.now() - timedelta(hours=1))
-            # Strip timezone info for MySQL comparison
             if hasattr(last_sync, 'tzinfo') and last_sync.tzinfo is not None:
                 last_sync = last_sync.replace(tzinfo=None)
 
             logger.info("[QUERY] %s | last_sync = %s",
                         self._config.table_name, last_sync)
 
-            # Use >= to catch records with same timestamp (preserved from original)
+            # Use >= to catch records with same timestamp and double quote identifiers
             query = f"""
             SELECT *
-            FROM {self._config.table_name}
-            WHERE {self._config.timestamp_column} >= %s
-            ORDER BY {self._config.timestamp_column} ASC
+            FROM "{self._db._name}"."{self._config.table_name}"
+            WHERE "{self._config.timestamp_column}" >= %s
+            ORDER BY "{self._config.timestamp_column}" ASC
             LIMIT {self._batch_size}
             """
             cursor.execute(query, (last_sync,))
@@ -399,22 +427,22 @@ class TableChangeMonitor:
 
 class AffinaEventPublisher:
     """
-    Production event publisher: monitors staging → RabbitMQ.
+    Production event publisher: monitors staging → RabbitMQ on PostgreSQL.
 
     Preserved from original:
     - pytz VN_TIMEZONE for timestamps
     - >= comparison in change queries
     - Dedup tracking per table via DuplicateTracker
-    - autocommit=True in MySQL configs
+    - autocommit=True in configs
     """
 
     def __init__(self):
-        staging_cfg = MySQLConfig('affina_staging', autocommit=True).get_config()
-        reporting_cfg = MySQLConfig('affina_reporting', autocommit=True).get_config()
+        staging_cfg = PostgreSQLConfig('DB_DATABASE', autocommit=True).get_config()
+        reporting_cfg = PostgreSQLConfig('DB_DATABASE', autocommit=True).get_config()
         rmq_cfg = RabbitMQConfig().get_config()
 
-        self._staging_db = MySQLConnectionManager(staging_cfg, 'staging')
-        self._reporting_db = MySQLConnectionManager(reporting_cfg, 'reporting')
+        self._staging_db = PostgreSQLConnectionManager(staging_cfg, 'staging', autocommit=True)
+        self._reporting_db = PostgreSQLConnectionManager(reporting_cfg, 'reporting', autocommit=True)
         self._rmq = RabbitMQConnectionManager(rmq_cfg)
 
         self._monitors = [
@@ -428,7 +456,7 @@ class AffinaEventPublisher:
         logger.info("=" * 60)
         logger.info("AFFINA EVENT PUBLISHER STARTED")
         logger.info("=" * 60)
-        logger.info("Monitoring: affina_staging + affina_reporting")
+        logger.info("Monitoring: staging + reporting (PostgreSQL)")
         logger.info("Check interval: %ds", CHECK_INTERVAL)
         logger.info("Tables: %s", [m.entity_name for m in self._monitors])
         logger.info("=" * 60)
@@ -445,8 +473,8 @@ class AffinaEventPublisher:
                     logger.info("[INFO] Sleeping %ds until next poll...", CHECK_INTERVAL)
                     time.sleep(CHECK_INTERVAL)
 
-                except (mysql.connector.Error, mysql.connector.errors.OperationalError) as e:
-                    logger.error("[ERROR] MySQL error: %s", e)
+                except PostgreSQLError as e:
+                    logger.error("[ERROR] PostgreSQL error: %s", e)
                     time.sleep(5)
                     self._reconnect_all()
 
