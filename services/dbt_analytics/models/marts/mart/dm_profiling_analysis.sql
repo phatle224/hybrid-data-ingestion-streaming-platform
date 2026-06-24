@@ -1,3 +1,8 @@
+{{ config(
+    materialized='incremental',
+    unique_key='claim_id'
+) }}
+
 WITH contracts AS (
     SELECT * FROM {{ ref('fct_contracts_wide') }}
 ),
@@ -8,6 +13,11 @@ customers AS (
 
 claims AS (
     SELECT * FROM {{ ref('stg_claims') }}
+    
+    {% if is_incremental() %}
+        -- Only process claims that have been modified since the last dbt run
+        WHERE modified_at > (SELECT COALESCE(MAX(claim_modified_at), '1970-01-01'::timestamp) FROM {{ this }})
+    {% endif %}
 ),
 
 joined AS (

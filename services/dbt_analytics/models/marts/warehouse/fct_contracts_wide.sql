@@ -1,9 +1,19 @@
+{{ config(
+    materialized='incremental',
+    unique_key='contract_object_id'
+) }}
+
 WITH contracts AS (
     SELECT * FROM {{ ref('stg_contracts') }}
 ),
 
 objects AS (
     SELECT * FROM {{ ref('int_contracts_deduped') }}
+    
+    {% if is_incremental() %}
+        -- Only process contract objects that have been modified since the last dbt run
+        WHERE modified_at > (SELECT COALESCE(MAX(modified_at), '1970-01-01'::timestamp) FROM {{ this }})
+    {% endif %}
 ),
 
 joined AS (
