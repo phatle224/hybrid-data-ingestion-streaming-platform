@@ -1,3 +1,8 @@
+{{ config(
+    materialized='incremental',
+    unique_key='customer_key'
+) }}
+
 WITH distinct_customers AS (
     SELECT DISTINCT
         people_name AS customer_name,
@@ -5,9 +10,17 @@ WITH distinct_customers AS (
         people_gender AS customer_gender,
         people_phone AS customer_phone,
         people_email AS customer_email,
-        people_address AS customer_address
+        people_address AS customer_address,
+        MAX(modified_at) AS modified_at
     FROM {{ ref('int_contracts_deduped') }}
     WHERE people_name IS NOT NULL
+    
+    {% if is_incremental() %}
+        -- Only process customer updates that occurred since the last run
+        AND modified_at > (SELECT COALESCE(MAX(modified_at), '1970-01-01'::timestamp) FROM {{ this }})
+    {% endif %}
+    
+    GROUP BY 1, 2, 3, 4, 5, 6
 )
 
 SELECT
@@ -25,5 +38,6 @@ SELECT
         WHEN EXTRACT(YEAR FROM CURRENT_DATE) - EXTRACT(YEAR FROM customer_dob) BETWEEN 18 AND 35 THEN '18-35'
         WHEN EXTRACT(YEAR FROM CURRENT_DATE) - EXTRACT(YEAR FROM customer_dob) BETWEEN 36 AND 50 THEN '36-50'
         ELSE 'Over 50'
-    END AS age_group
+    END AS age_group,
+    modified_at
 FROM distinct_customers

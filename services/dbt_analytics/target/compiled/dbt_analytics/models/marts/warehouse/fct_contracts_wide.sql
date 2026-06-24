@@ -1,9 +1,16 @@
+
+
 WITH contracts AS (
     SELECT * FROM "insuranceWarehouse"."staging"."stg_contracts"
 ),
 
 objects AS (
     SELECT * FROM "insuranceWarehouse"."intermediate"."int_contracts_deduped"
+    
+    
+        -- Only process contract objects that have been modified since the last dbt run
+        WHERE modified_at > (SELECT COALESCE(MAX(modified_at), '1970-01-01'::timestamp) FROM "insuranceWarehouse"."warehouse"."fct_contracts_wide")
+    
 ),
 
 joined AS (

@@ -1,57 +1,18 @@
 
-  
+      
+        
+        
+        delete from "insuranceWarehouse"."warehouse"."fct_contracts_wide" as DBT_INTERNAL_DEST
+        where (contract_object_id) in (
+            select distinct contract_object_id
+            from "fct_contracts_wide__dbt_tmp010907384756" as DBT_INTERNAL_SOURCE
+        );
+
     
 
-  create  table "insuranceWarehouse"."warehouse"."fct_contracts_wide__dbt_tmp"
-  
-  
-    as
-  
-  (
-    WITH contracts AS (
-    SELECT * FROM "insuranceWarehouse"."staging"."stg_contracts"
-),
-
-objects AS (
-    SELECT * FROM "insuranceWarehouse"."intermediate"."int_contracts_deduped"
-),
-
-joined AS (
-    SELECT
-        o.contract_object_id,
-        o.contract_id,
-        c.contract_id_display,
-        c.buyer_name,
-        c.buyer_phone,
-        c.buyer_email,
-        c.buyer_dob,
-        o.people_name AS insured_name,
-        o.people_dob AS insured_dob,
-        o.people_gender AS insured_gender,
-        o.people_phone AS insured_phone,
-        o.people_email AS insured_email,
-        o.people_address AS insured_address,
-        o.insurance_type,
-        o.source_type,
-        o.major_name,
-        o.company_provider_name,
-        o.start_date AS contract_start_date,
-        o.end_date AS contract_end_date,
-        o.fee_insurance,
-        c.amount AS contract_amount,
-        c.commission AS contract_commission,
-        c.amount_pay AS contract_amount_pay,
-        c.company_sale_name,
-        c.branch_sale_name,
-        o.created_at,
-        o.modified_at,
-        
-        -- Customer surrogate key for joining dim_customers
-        MD5(COALESCE(o.people_name, '') || '_' || COALESCE(o.people_dob::text, '') || '_' || COALESCE(o.people_phone, '')) AS customer_key
-    FROM objects o
-    LEFT JOIN contracts c ON o.contract_id = c.contract_id
-)
-
-SELECT * FROM joined
-  );
+    insert into "insuranceWarehouse"."warehouse"."fct_contracts_wide" ("contract_object_id", "contract_id", "contract_id_display", "buyer_name", "buyer_phone", "buyer_email", "buyer_dob", "insured_name", "insured_dob", "insured_gender", "insured_phone", "insured_email", "insured_address", "insurance_type", "source_type", "major_name", "company_provider_name", "contract_start_date", "contract_end_date", "fee_insurance", "contract_amount", "contract_commission", "contract_amount_pay", "company_sale_name", "branch_sale_name", "created_at", "modified_at", "customer_key")
+    (
+        select "contract_object_id", "contract_id", "contract_id_display", "buyer_name", "buyer_phone", "buyer_email", "buyer_dob", "insured_name", "insured_dob", "insured_gender", "insured_phone", "insured_email", "insured_address", "insurance_type", "source_type", "major_name", "company_provider_name", "contract_start_date", "contract_end_date", "fee_insurance", "contract_amount", "contract_commission", "contract_amount_pay", "company_sale_name", "branch_sale_name", "created_at", "modified_at", "customer_key"
+        from "fct_contracts_wide__dbt_tmp010907384756"
+    )
   

@@ -1,3 +1,5 @@
+
+
 WITH contracts AS (
     SELECT * FROM "insuranceWarehouse"."warehouse"."fct_contracts_wide"
 ),
@@ -8,6 +10,11 @@ customers AS (
 
 claims AS (
     SELECT * FROM "insuranceWarehouse"."staging"."stg_claims"
+    
+    
+        -- Only process claims that have been modified since the last dbt run
+        WHERE modified_at > (SELECT COALESCE(MAX(claim_modified_at), '1970-01-01'::timestamp) FROM "insuranceWarehouse"."mart"."dm_profiling_analysis")
+    
 ),
 
 joined AS (
