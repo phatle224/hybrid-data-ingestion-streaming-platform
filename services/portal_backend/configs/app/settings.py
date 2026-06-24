@@ -39,7 +39,7 @@ class AppSettings:
         self.allowed_extensions = [".xlsx", ".xls"]
         
         # Database table names
-        self.staging_table = "stgContractObjectOffline"
+        self.staging_table = "stgInsuranceContractObjectOffline"
         
         # Business logic settings
         self.duplicate_check_keys = ["contractId", "peopleName", "majorName", "companyProviderName", "startDate", "endDate", "feeInsurance"]

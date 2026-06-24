@@ -1,0 +1,49 @@
+# ============================================================================
+# Docker Compose for local PostgreSQL databases (Source and Staging)
+# Usage: docker-compose -f docker-compose.db.yml up -d
+# ============================================================================
+
+version: '3.8'
+
+services:
+  production_db:
+    image: postgres:15-alpine
+    container_name: cdc_production_db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=insure_admin
+      - POSTGRES_PASSWORD=insure_secure_pass
+      - POSTGRES_DB=insure_production
+    command: ["postgres", "-c", "wal_level=logical"]
+    volumes:
+      - production_db_data:/var/lib/postgresql/data
+    networks:
+      - cdc-network
+
+  staging_db:
+    image: postgres:15-alpine
+    container_name: cdc_staging_db
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=insure_admin
+      - POSTGRES_PASSWORD=insure_secure_pass
+      - POSTGRES_DB=insure_staging
+    volumes:
+      - staging_db_data:/var/lib/postgresql/data
+    networks:
+      - cdc-network
+
+volumes:
+  production_db_data:
+    driver: local
+  staging_db_data:
+    driver: local
+
+networks:
+  cdc-network:
+    name: cdc-network
+    external: true

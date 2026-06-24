@@ -1,8 +1,9 @@
 """
-Database configuration module
+Database configuration module for PostgreSQL
 """
 import os
-import mysql.connector
+import psycopg2
+from psycopg2.extras import DictCursor
 from typing import Optional
 
 
@@ -11,10 +12,10 @@ class DatabaseConfig:
     
     def __init__(self):
         self.host = os.getenv("DB_HOST", "localhost")
-        self.port = int(os.getenv("DB_PORT", "3306"))
-        self.user = os.getenv("DB_USER", "")
-        self.password = os.getenv("DB_PASSWORD", "")
-        self.database = os.getenv("DB_NAME", "")
+        self.port = int(os.getenv("DB_PORT", "5432"))
+        self.user = os.getenv("DB_USER", "postgres")
+        self.password = os.getenv("DB_PASSWORD", "postgres")
+        self.database = os.getenv("DB_NAME", "postgres")
     
     def to_dict(self) -> dict:
         """Convert config to dictionary"""
@@ -28,7 +29,11 @@ class DatabaseConfig:
     
     def get_connection(self):
         """Create and return a database connection"""
-        return mysql.connector.connect(**self.to_dict())
+        conn = psycopg2.connect(**self.to_dict(), cursor_factory=DictCursor)
+        # Set search path to include staging and public schemas
+        with conn.cursor() as cur:
+            cur.execute('SET search_path TO staging, public')
+        return conn
 
 
 class DatabaseConnection:
@@ -36,13 +41,13 @@ class DatabaseConnection:
     
     def __init__(self, config: DatabaseConfig):
         self.config = config
-        self.connection: Optional[mysql.connector.MySQLConnection] = None
+        self.connection: Optional[psycopg2.extensions.connection] = None
         self.cursor = None
     
     def __enter__(self):
         """Enter context manager"""
         self.connection = self.config.get_connection()
-        self.cursor = self.connection.cursor(dictionary=True)
+        self.cursor = self.connection.cursor()
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -58,6 +63,8 @@ class DatabaseConnection:
     
     def execute(self, query: str, params: tuple = None):
         """Execute a query"""
+        # PostgreSQL double quotes are required if tables/columns are mixed case.
+        # But we already double quote them in repositories where needed.
         if params:
             self.cursor.execute(query, params)
         else:

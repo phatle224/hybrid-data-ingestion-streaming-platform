@@ -10,7 +10,6 @@ from configs.mappings.vehicle_mapping import VehicleMapping
 from configs.mappings.moto_mapping import MotoMapping
 from configs.mappings.medical_social_mapping import MedicalSocialMapping
 from configs.mappings.health_mapping import HealthMapping
-from configs.mappings.hazard_mapping import HazardMapping
 
 
 # Registry of all available mappings (matches backend MAPPING_REGISTRY)
@@ -20,7 +19,6 @@ MAPPING_REGISTRY = {
     'MOTO': MotoMapping,
     'MEDICAL_SOCIAL': MedicalSocialMapping,
     'HEALTH': HealthMapping,
-    'HAZARD': HazardMapping,
 }
 
 
@@ -51,6 +49,6 @@ def get_supported_types() -> list:
 __all__ = [
     'BaseInsuranceMapping',
     'TravelMapping', 'VehicleMapping', 'MotoMapping',
-    'MedicalSocialMapping', 'HealthMapping', 'HazardMapping',
+    'MedicalSocialMapping', 'HealthMapping',
     'MAPPING_REGISTRY', 'get_mapping', 'get_supported_types',
 ]

@@ -1,5 +1,5 @@
 # Profiling Consumer: Staging CDC → Profiling analysis table
 # Shared package is installed from ../shared/ in Dockerfile
 kafka-python==2.0.2
-mysql-connector-python==8.2.0
+psycopg2-binary==2.9.9
 python-dotenv==1.0.0

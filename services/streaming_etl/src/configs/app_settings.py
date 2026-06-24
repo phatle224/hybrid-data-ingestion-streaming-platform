@@ -1,5 +1,5 @@
 """
-Application settings for ETL consumer.
+Application settings for ETL consumer on PostgreSQL.
 Mirrors backend configs/app/settings.py pattern.
 """
 from typing import Set
@@ -13,7 +13,7 @@ class AppSettings:
         self.version = "1.0.0"
 
         # Database table names
-        self.staging_table = "stgContractObjectOffline"
+        self.staging_table = "stgInsuranceContractObjectOffline"
 
         # Business logic settings
         self.duplicate_check_keys = ["contractId", "name", "majorName", "companyProviderName"]
@@ -22,24 +22,22 @@ class AppSettings:
         # Insurance types
         self.insurance_types = [
             'TRAVEL', 'VEHICLE', 'MOTO', 'SOCIAL', 'MEDICAL',
-            'HEALTH', 'HAZARD', 'HOUSE',
+            'HEALTH', 'HOUSE',
         ]
 
         # Table routing (insurance type → staging table)
         self.staging_table_mapping = {
-            'TRAVEL': 'stgContractObjectOffline',
-            'VEHICLE': 'stgContractObjectOffline',
-            'MOTO': 'stgContractObjectOffline',
-            'SOCIAL': 'stgContractObjectOffline',
-            'MEDICAL': 'stgContractObjectOffline',
-            'HEALTH': 'stgContractObjectOffline',
-            'HAZARD': 'stgContractObjectOffline',
-            'HOUSE': 'stgContractObjectHouse',
+            'TRAVEL': 'stgInsuranceContractObjectOffline',
+            'VEHICLE': 'stgInsuranceContractObjectOffline',
+            'MOTO': 'stgInsuranceContractObjectOffline',
+            'SOCIAL': 'stgInsuranceContractObjectOffline',
+            'MEDICAL': 'stgInsuranceContractObjectOffline',
+            'HEALTH': 'stgInsuranceContractObjectOffline',
+            'HOUSE': 'stgInsuranceContractObjectHouse',
         }
 
-        # Valid database schema columns (from stgContractObjectOffline table)
+        # Valid database schema columns (from stgInsuranceContractObjectOffline table)
         # Only these columns can be inserted into database
-        # Matches backend AppSettings.valid_db_columns exactly
         self.valid_db_columns: Set[str] = {
             'contractObjectId', 'contractObjectIdDisplay', 'insuranceType', 'cardNumber',
             'certificateNumberProvider', 'accountTPA', 'userId', 'contractId', 'contractIdDisplay',

@@ -10,12 +10,11 @@ services:
       - "3011:3011"
     environment:
       - DEBUG=true
-      - MYSQL_HOST=${MYSQL_HOST:-localhost}
-      - DB_HOST=${MYSQL_HOST:-localhost}
-      - DB_USER=${MYSQL_USER:-synthetic_db_user}
-      - DB_PASSWORD=${MYSQL_PASSWORD:-REDACTED_PASSWORD}
-      - DB_NAME=${MYSQL_DATABASE:-insuranceWarehouse}
-      - DB_PORT=${MYSQL_PORT:-3306}
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_DATABASE:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3011/api/health/"]

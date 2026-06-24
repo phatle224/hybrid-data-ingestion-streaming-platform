@@ -10,7 +10,6 @@ from processors.vehicle_processor import VehicleProcessor
 from processors.moto_processor import MotoProcessor
 from processors.medical_social_processor import MedicalSocialProcessor
 from processors.health_processor import HealthProcessor
-from processors.hazard_processor import HazardProcessor
 
 
 # Registry of all available processors (matches backend PROCESSOR_REGISTRY)
@@ -20,7 +19,6 @@ PROCESSOR_REGISTRY = {
     'MOTO': MotoProcessor,
     'MEDICAL_SOCIAL': MedicalSocialProcessor,
     'HEALTH': HealthProcessor,
-    'HAZARD': HazardProcessor,
 }
 
 
@@ -45,6 +43,6 @@ def get_supported_types() -> list:
 __all__ = [
     'IInsuranceProcessor',
     'TravelProcessor', 'VehicleProcessor', 'MotoProcessor',
-    'MedicalSocialProcessor', 'HealthProcessor', 'HazardProcessor',
+    'MedicalSocialProcessor', 'HealthProcessor',
     'PROCESSOR_REGISTRY', 'get_processor', 'get_supported_types',
 ]

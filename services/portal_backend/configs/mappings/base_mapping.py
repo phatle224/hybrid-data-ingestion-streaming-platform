@@ -47,10 +47,7 @@ class BaseInsuranceMapping(ABC):
             'LIBERTY', 'MIC', 'PJICO', 'PTI', 'PVI Digital',
             'PVI Đồng Khởi', 'PVI Gia Định', 'Tasco', 'VNI',
         },
-        'HAZARD': {
-            'AAA', 'Bảo Minh Bến Nghé', 'Bảo Minh Bến Thành',
-            'Bảo Việt', 'LIBERTY', 'MIC', 'PVI Đồng Khởi', 'PVI Gia Định', 'QBE',
-        },
+
         'HEALTH': {
             'AAA', 'Bảo Minh', 'Bảo Minh Bến Nghé', 'Bảo Minh Bến Thành',
             'Bảo Việt', 'BHV', 'BSH', 'GIC', 'LIBERTY', 'MIC', 'OPES',
@@ -99,27 +96,7 @@ class BaseInsuranceMapping(ABC):
             'BHVCOTO_Liberty', 'BHVCOTO_Liberty_new', 'BHVCOTO_Liberty_renew',
             'BHVCOTO_MIC', 'BHVCOTO_Tasco', 'BHVCOTO_DBV Nghệ An_Xe cơ giới khác',
         },
-        'HAZARD': {
-            'Bảo hiểm cháy, nổ bắt buộc_CAT1,2', 'Bảo hiểm cháy, nổ bắt buộc_CAT3',
-            'Bảo hiểm cháy, nổ bắt buộc_CAT4', 'Bảo hiểm cháy, nổ bắt buộc_CAT5',
-            'Bảo hiểm cháy, nổ bắt buộc_CAT3,4', 'Bảo hiểm cháy, nổ bắt buộc',
-            'Hỏa hoạn và các rủi ro đặc biệt_CAT1,2',
-            'Hỏa hoạn và các rủi ro đặc biệt_CAT3',
-            'Hỏa hoạn và các rủi ro đặc biệt_CAT4',
-            'Hỏa hoạn và các rủi ro đặc biệt_CAT5',
-            'Bảo Hiểm Nhà Tư Nhân', 'Bảo hiểm mọi rủi ro xây dựng và lắp đặt',
-            'Bh mọi rủi ro lắp đặt & TN bên thứ 3',
-            'BẢO HIỂM MỌI RỦI RO XÂY DỰNG VÀ LẮP ĐẶT',
-            'Bảo hiểm Mọi rủi ro xây dựng và trách nhiệm đối với bên thứ ba',
-            'Bảo hiểm bắt buộc Trách nhiệm nghề nghiệp tư vấn đầu tư xây dựng',
-            'Bảo hiểm cháy và các rủi ro đặc biệt',
-            'Bảo hiểm hỏa hoạn và các rủi ro đặc biệt (tùy loại rủi ro, số tiền bảo hiểm)',
-            'Bảo hiểm toàn diện nhà tư nhân', 'Bảo hiểm trách nhiệm công cộng',
-            'Đơn mọi rủi ro tài sản', 'Trách nhiệm nghề nghiệp',
-            'BH mọi rủi ro tài sản', 'Bảo hiểm nhà An Gia Phát',
-            'Mọi rủi ro tài sản', 'Bảo hiểm mọi rủi ro về tiền',
-            'BẢO HIỂM TRÁCH NHIỆM',
-        },
+
         'HEALTH': {
             'SKTA_renew', 'An Sinh Thịnh Vượng', 'BV_Cl10',
             'Bảo hiểm Tai nạn', 'Bảo hiểm sức khỏe doanh nghiệp',
@@ -280,7 +257,7 @@ class BaseInsuranceMapping(ABC):
     def get_name_field(self) -> str:
         """
         Get the field name used for the primary name source in Excel mapping.
-        For VEHICLE/MOTO/HAZARD: returns 'payerName' (buyer = insured, will be
+        For VEHICLE/MOTO: returns 'payerName' (buyer = insured, will be
         mirrored to peopleName in transform_records for business key).
         For HEALTH/MEDICAL_SOCIAL/TRAVEL: can be overridden to 'peopleName'
         if peopleName is mapped directly from Excel.

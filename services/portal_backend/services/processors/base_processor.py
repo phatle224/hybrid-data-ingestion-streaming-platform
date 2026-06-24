@@ -150,7 +150,7 @@ class IInsuranceProcessor(ABC):
             row_dict['insuranceType'] = self.insurance_type
             
             # Ensure 'peopleName' field exists for business key.
-            # For VEHICLE/MOTO/HAZARD: name_field='payerName', copy to peopleName
+            # For VEHICLE/MOTO: name_field='payerName', copy to peopleName
             # For HEALTH/MEDICAL_SOCIAL/TRAVEL: peopleName mapped directly from Excel
             name_field = self.mapping.get_name_field()
             if 'peopleName' not in row_dict or not row_dict.get('peopleName'):

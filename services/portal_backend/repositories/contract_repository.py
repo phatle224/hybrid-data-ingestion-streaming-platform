@@ -12,7 +12,7 @@ class ContractRepository:
     """Repository for contract database operations"""
     
     # Allowed table names (whitelist for SQL injection prevention)
-    ALLOWED_TABLES = {"stgContractObjectOffline"}
+    ALLOWED_TABLES = {"stgInsuranceContractObjectOffline"}
 
     @staticmethod
     def _normalize_fee_key(value: Any) -> Any:
@@ -262,8 +262,8 @@ class ContractRepository:
         if not filtered_data:
             return False
         
-        # Escape column names with backticks for reserved words
-        columns = ", ".join([f"`{k}`" for k in filtered_data.keys()])
+        # Escape column names with double quotes for PostgreSQL
+        columns = ", ".join([f'"{k}"' for k in filtered_data.keys()])
         placeholders = ", ".join(["%s"] * len(filtered_data))
         values = tuple(filtered_data.values())
         
@@ -312,8 +312,8 @@ class ContractRepository:
                         failed_records.append((record, error_msg))
                         continue
                     
-                    # Escape column names with backticks for reserved words
-                    columns = ", ".join([f"`{k}`" for k in filtered_data.keys()])
+                    # Escape column names with double quotes for PostgreSQL
+                    columns = ", ".join([f'"{k}"' for k in filtered_data.keys()])
                     placeholders = ", ".join(["%s"] * len(filtered_data))
                     values = tuple(filtered_data.values())
                     

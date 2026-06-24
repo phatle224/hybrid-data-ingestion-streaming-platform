@@ -54,10 +54,12 @@ services:
     environment:
       # Timezone Configuration
       TZ: Asia/Ho_Chi_Minh
-      # MySQL Configuration
-      MYSQL_HOST: localhost
-      MYSQL_USER: synthetic_db_user
-      MYSQL_PASSWORD: REDACTED_PASSWORD
+      # PostgreSQL Configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: postgres
       # RabbitMQ Configuration
       RABBITMQ_HOST: cdc_rabbitmq
       RABBITMQ_PORT: 5672

@@ -8,17 +8,14 @@ services:
       # Kafka Configuration
       KAFKA_BOOTSTRAP_SERVERS: kafka:9093
       CONSUMER_GROUP: profiling-consumer-v1
-      TOPIC_PREFIX: staging.insuranceWarehouse
+      TOPIC_PREFIX: staging.staging
       
-      # Staging Database (read-only for lookups)
-      STAGING_DB_HOST: localhost
-      STAGING_DB_USER: synthetic_db_user
-      STAGING_DB_PASSWORD: REDACTED_PASSWORD
-      
-      # Reporting Database (write profiling_analysis)
-      REPORTING_DB_HOST: localhost
-      REPORTING_DB_USER: synthetic_db_user
-      REPORTING_DB_PASSWORD: REDACTED_PASSWORD
+      # PostgreSQL Database (Staging + Reporting)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: postgres
       
       # Logging
       PYTHONUNBUFFERED: 1

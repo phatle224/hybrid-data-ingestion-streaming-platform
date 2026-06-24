@@ -14,12 +14,12 @@ services:
     restart: always
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
-      - MYSQL_HOST=localhost
-      - MYSQL_PORT=3306
-      - MYSQL_USER=synthetic_db_user
-      - MYSQL_PASSWORD=REDACTED_PASSWORD
-      - MYSQL_DATABASE=insuranceWarehouse
-      - TOPIC_PREFIX=source.insuranceSale
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE=postgres
+      - TOPIC_PREFIX=source.public
       - LOG_LEVEL=DEBUG
 
 networks:

@@ -151,7 +151,6 @@ curl -X POST http://localhost:3011/api/upload/excel \
 | Xe máy | MOTO | *moto*.xlsx |
 | Sức khỏe | HEALTH | *health*.xlsx |
 | Y tế xã hội | MEDICAL_SOCIAL | *medical*.xlsx |
-| Tai nạn | HAZARD | *hazard*.xlsx |
 
 ---
 

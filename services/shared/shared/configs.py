@@ -175,3 +175,51 @@ class RabbitMQConfig(BaseConfig):
             'heartbeat': self.env('RABBITMQ_HEARTBEAT', 600, int),
             'blocked_connection_timeout': self.env('RABBITMQ_BLOCKED_TIMEOUT', 300, int),
         }
+
+
+class PostgreSQLConfig(BaseConfig):
+    """
+    PostgreSQL database configuration.
+    """
+
+    def __init__(
+        self,
+        database: str = None,
+        host: str = None,
+        port: int = None,
+        user: str = None,
+        password: str = None,
+        host_env: str = 'DB_HOST',
+        port_env: str = 'DB_PORT',
+        user_env: str = 'DB_USER',
+        password_env: str = 'DB_PASSWORD',
+        database_env: str = 'DB_DATABASE',
+    ):
+        super().__init__()
+        self._config = {
+            'host': host or self.env(host_env, 'localhost'),
+            'port': port or self.env(port_env, 5432, int),
+            'user': user or self.env(user_env, 'postgres'),
+            'password': password or self.env(password_env, 'postgres'),
+            'database': database or self.env(database_env, 'postgres'),
+        }
+
+    @property
+    def host(self) -> str:
+        return self._config['host']
+
+    @property
+    def port(self) -> int:
+        return self._config['port']
+
+    @property
+    def user(self) -> str:
+        return self._config['user']
+
+    @property
+    def password(self) -> str:
+        return self._config['password']
+
+    @property
+    def database(self) -> str:
+        return self._config['database']

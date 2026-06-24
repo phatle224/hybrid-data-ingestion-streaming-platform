@@ -105,7 +105,7 @@ Dự án này là cổng tiếp nhận các file Excel hợp đồng từ các �
 3.  **Deduplication Phase (Kiểm tra trùng lặp)**:
     *   Hệ thống kiểm tra xem dữ liệu trong file Excel đã tồn tại trên hệ thống trực tuyến (Online) hay chưa.
     *   Sử dụng cơ chế tối ưu **Batch Query** gửi danh sách khóa cần kiểm tra lên cơ sở dữ liệu và truy vấn nhanh trên **Redis Cache** (chi tiết tại mục 4).
-4.  **Insert Database**: Chỉ các bản ghi được xác nhận là mới (không trùng lặp) mới được chèn vào bảng `stgContractObjectOffline` thuộc database `insuranceWarehouse`.
+4.  **Insert Database**: Chỉ các bản ghi được xác nhận là mới (không trùng lặp) mới được chèn vào bảng `stgInsuranceContractObjectOffline` thuộc schema `staging` của database `insure_staging`.
 
 ---
 
@@ -114,31 +114,31 @@ Dự án này là cổng tiếp nhận các file Excel hợp đồng từ các �
 Dự án này chịu trách nhiệm đồng bộ dữ liệu thời gian thực từ database sản xuất, tổng hợp dữ liệu (ETL) và xây dựng kho lưu trữ phục vụ báo cáo.
 
 ### 3.1. CDC Layer 1: Source (Production) ➔ Staging
-*   **Debezium Connector (`mysql-source-connector`)**: Giám sát nhật ký giao dịch (binlog) trên database sản xuất `insuranceSale` đối với các bảng liên quan đến hợp đồng (`contract`, `contractObject`, `claim`...).
-*   **Kafka Topics (`source.insuranceSale.*`)**: Nhận các sự kiện thay đổi dữ liệu từ Debezium.
+*   **Debezium Connector (`postgresql-source-connector`)**: Giám sát thay đổi dữ liệu trên database sản xuất `insure_production` đối với các bảng liên quan đến hợp đồng (`insuranceContract`, `insuranceContractObject`, `insuranceClaim`...).
+*   **Kafka Topics (`source.public.*`)**: Nhận các sự kiện thay đổi dữ liệu từ Debezium.
 *   **CDC Consumer (`server_consumer`)**:
     *   Đọc luồng sự kiện từ Kafka.
-    *   Sử dụng `DebeziumTransformer` chuyển đổi định dạng dữ liệu (ví dụ: epoch time sang MySQL datetime).
-    *   Ghi đè hoặc cập nhật trực tiếp vào cơ sở dữ liệu `insuranceWarehouse` (các bảng `stgContract`, `stgContractObject*`).
-    *   *Operation mapping*: Các sự kiện tạo mới (`c`) hoặc chụp nhanh (`r`) dùng **UPSERT** (`INSERT ... ON DUPLICATE KEY UPDATE`); sự kiện cập nhật (`u`) dùng **UPDATE**; sự kiện xóa (`d`) dùng **DELETE**.
+    *   Sử dụng `DebeziumTransformer` chuyển đổi định dạng dữ liệu (ví dụ: epoch time sang PostgreSQL timestamp).
+    *   Ghi đè hoặc cập nhật trực tiếp vào cơ sở dữ liệu `insure_staging` (các bảng `stgInsuranceContract`, `stgInsuranceContractObject*` thuộc schema `staging`).
+    *   *Operation mapping*: Các sự kiện tạo mới (`c`) hoặc chụp nhanh (`r`) dùng **UPSERT** (`INSERT ... ON CONFLICT (...) DO UPDATE SET ...`); sự kiện cập nhật (`u`) dùng **UPDATE**; sự kiện xóa (`d`) dùng **DELETE**.
 
 ### 3.2. CDC Layer 2: Staging ➔ Reporting (Streaming ETL & Profiling)
-*   **Debezium Connector (`mysql-staging-connector`)**: Theo dõi các thay đổi trên database `insuranceWarehouse` (bao gồm cả dữ liệu Online do CDC Consumer ghi và dữ liệu Offline do Portal tải lên).
-*   **Kafka Topics (`staging.insuranceWarehouse.*`)**: Phân phối luồng dữ liệu staging.
+*   **Debezium Connector (`postgresql-staging-connector`)**: Theo dõi các thay đổi trên database `insure_staging` (bao gồm cả dữ liệu Online do CDC Consumer ghi và dữ liệu Offline do Portal tải lên).
+*   **Kafka Topics (`staging.staging.*`)**: Phân phối luồng dữ liệu staging.
 *   **Streaming ETL Consumer (`affina_streaming_etl`)**:
     *   Đọc các sự kiện staging.
     *   Sử dụng Redis kiểm tra xem bản ghi này đã được xử lý chưa (processed marker) để tránh xử lý lặp khi replay.
     *   Thực hiện truy vấn liên kết ngược lại staging để lấy thông tin hợp đồng tổng (Contract Master).
     *   Chuyển đổi cấu trúc riêng của từng loại bảo hiểm về cấu hình chung (Wide Table).
-    *   **UPSERT** dữ liệu vào bảng rộng `insuranceReporting.contract`.
+    *   **UPSERT** dữ liệu vào bảng rộng `reporting.contract` (`INSERT ... ON CONFLICT DO UPDATE`).
 *   **Profiling Consumer (`affina_profiling_consumer`)**:
-    *   Tiêu thụ các sự kiện liên quan đến bồi thường (`stgClaim`) và đối tượng bảo hiểm.
+    *   Tiêu thụ các sự kiện liên quan đến bồi thường (`stgInsuranceClaim`) và đối tượng bảo hiểm.
     *   Tính toán thời gian thực các chỉ số phân tích: phân nhóm tuổi, phân loại danh mục bệnh án dựa trên mô tả chẩn đoán, map mã tỉnh thành thành tên thành phố, phân tích mối quan hệ gia đình.
-    *   **UPSERT** vào bảng phân tích `insuranceReporting.profiling_analysis`.
+    *   **UPSERT** vào bảng phân tích `reporting.profiling_analysis`.
 
 ### 3.3. Downstream Notification (Event Publisher)
 *   **Event Publisher (`affina_event_publisher`)**:
-    *   Quét định kỳ các bảng dữ liệu `insuranceWarehouse` và `insuranceReporting` để phát hiện các sự kiện thêm mới hoặc cập nhật hợp đồng/bồi thường.
+    *   Quét định kỳ các bảng dữ liệu của schema `staging` và `reporting` để phát hiện các sự kiện thêm mới hoặc cập nhật hợp đồng/bồi thường.
     *   Đẩy thông báo vào **RabbitMQ Exchange** (`affina.cdc.events`).
     *   Các ứng dụng hạ nguồn như **Doc OCR App** sẽ đăng ký các hàng đợi (`doc_ocr_queue`) để nhận diện và xử lý tài liệu liên quan.
 
@@ -166,7 +166,7 @@ Dự án này chịu trách nhiệm đồng bộ dữ liệu thời gian thực 
 
 ### 4.3. Quy Trình Đồng Bộ Qua Redis
 1.  **Xây Dựng Cache (Phía `cdc_reporting`)**:
-    *   Script `redis_cache_builder.py` quét toàn bộ dữ liệu hợp đồng online đang có trong database `insuranceWarehouse` (của tất cả các loại bảo hiểm).
+    *   Script `redis_cache_builder.py` quét toàn bộ dữ liệu hợp đồng online đang có trong database `insure_staging` (của tất cả các loại bảo hiểm).
     *   Với mỗi hợp đồng, nó trích xuất 7 trường thông tin trên, chuẩn hóa và gộp thành một khóa Redis theo format:
         `contract:dedup:{contractId}:{name}:{majorName}:{companyProviderName}:{startDate}:{endDate}:{feeInsurance}`
     *   Lưu khóa này lên Redis với thời gian hết hạn **TTL là 7 ngày** (hoặc 24 giờ tùy cấu hình hệ thống). Giá trị lưu trữ đi kèm là một JSON metadata dạng: `{"source": "online", "contractObjectId": "...", "insuranceType": "HEALTH"}`.
@@ -175,7 +175,7 @@ Dự án này chịu trách nhiệm đồng bộ dữ liệu thời gian thực 
     *   Với mỗi dòng dữ liệu, backend trích xuất 7 thông tin tương ứng, thực hiện chuẩn hóa tương tự và ghép thành khóa Redis.
     *   Gửi lệnh kiểm tra nhanh tồn tại (`EXISTS`) lên Redis:
         *   **Nếu EXISTS = True**: Bản ghi này đã tồn tại dưới dạng Online. Portal sẽ **Bỏ qua (Skip)** bản ghi này trong file Excel và đánh dấu là trùng lặp.
-        *   **Nếu EXISTS = False**: Bản ghi chưa tồn tại. Portal sẽ thực hiện chèn bản ghi này vào cơ sở dữ liệu `insuranceWarehouse.stgContractObjectOffline`.
+        *   **Nếu EXISTS = False**: Bản ghi chưa tồn tại. Portal sẽ thực hiện chèn bản ghi này vào cơ sở dữ liệu `insure_staging.stgInsuranceContractObjectOffline`.
 
 ---
 
@@ -184,10 +184,10 @@ Dự án này chịu trách nhiệm đồng bộ dữ liệu thời gian thực 
 | Thành phần | Thuộc dự án | Vai trò chính | Đầu vào (Input) | Đầu ra (Output) |
 |---|---|---|---|---|
 | **Portal React FE** | `portal_frontend` | Giao diện người dùng tải lên Excel và xem kết quả thống kê trùng lặp. | Tác vụ người dùng, file Excel | HTTP Requests tới API |
-| **Portal FastAPI BE**| `portal_backend` | Phân tích file Excel, gọi processor phù hợp, check trùng lặp qua Redis. | File Excel + API Request | Ghi dữ liệu vào `stgContractObjectOffline` |
-| **Debezium Connect** | `cdc_reporting` | Lắng nghe thay đổi dữ liệu (CDC) từ DB Source và DB Staging. | MySQL Binlog | Các sự kiện CDC trên Kafka |
-| **CDC Consumer** | `cdc_reporting` | Đọc dữ liệu thô từ Kafka, định dạng kiểu dữ liệu và ghi vào Staging. | Kafka `source.*` topics | Bảng staging tại `insuranceWarehouse` |
-| **Streaming ETL** | `cdc_reporting` | Hợp nhất dữ liệu chi tiết của các loại bảo hiểm thành một Wide Table báo cáo. | Kafka `staging.*` topics | Bảng `insuranceReporting.contract` |
-| **Profiling Consumer**| `cdc_reporting` | Tính toán các chỉ số phân tích người dùng, hồ sơ bệnh án thời gian thực. | Kafka `staging.*` topics | Bảng `insuranceReporting.profiling_analysis` |
+| **Portal FastAPI BE**| `portal_backend` | Phân tích file Excel, gọi processor phù hợp, check trùng lặp qua Redis. | File Excel + API Request | Ghi dữ liệu vào `stgInsuranceContractObjectOffline` |
+| **Debezium Connect** | `cdc_reporting` | Lắng nghe thay đổi dữ liệu (CDC) từ DB Source và DB Staging. | PostgreSQL WAL | Các sự kiện CDC trên Kafka |
+| **CDC Consumer** | `cdc_reporting` | Đọc dữ liệu thô từ Kafka, định dạng kiểu dữ liệu và ghi vào Staging. | Kafka `source.*` topics | Bảng staging tại `insure_staging` |
+| **Streaming ETL** | `cdc_reporting` | Hợp nhất dữ liệu chi tiết của các loại bảo hiểm thành một Wide Table báo cáo. | Kafka `staging.*` topics | Bảng `reporting.contract` |
+| **Profiling Consumer**| `cdc_reporting` | Tính toán các chỉ số phân tích người dùng, hồ sơ bệnh án thời gian thực. | Kafka `staging.*` topics | Bảng `reporting.profiling_analysis` |
 | **Redis Cache** | `cdc_reporting` | Lưu trữ bộ khóa 7 Business Keys phục vụ kiểm tra trùng lặp thời gian thực O(1). | Cache ghi từ `redis_cache_builder.py` | Kết quả kiểm tra của Portal BE |
 | **Event Publisher** | `cdc_reporting` | Phát hiện sự thay đổi và thông báo cho các dịch vụ bên ngoài (Doc OCR). | Thay đổi trên DB Staging / Reporting | RabbitMQ Events |

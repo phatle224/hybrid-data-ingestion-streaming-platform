@@ -7,7 +7,6 @@ from services.processors.vehicle_processor import VehicleProcessor
 from services.processors.moto_processor import MotoProcessor
 from services.processors.medical_social_processor import MedicalSocialProcessor
 from services.processors.health_processor import HealthProcessor
-from services.processors.hazard_processor import HazardProcessor
 
 
 # Registry of all available processors
@@ -17,7 +16,6 @@ PROCESSOR_REGISTRY = {
     'MOTO': MotoProcessor,
     'MEDICAL_SOCIAL': MedicalSocialProcessor,
     'HEALTH': HealthProcessor,
-    'HAZARD': HazardProcessor,
 }
 
 
@@ -52,7 +50,6 @@ __all__ = [
     'MotoProcessor',
     'MedicalSocialProcessor',
     'HealthProcessor',
-    'HazardProcessor',
     'PROCESSOR_REGISTRY',
     'get_processor',
     'get_supported_types',

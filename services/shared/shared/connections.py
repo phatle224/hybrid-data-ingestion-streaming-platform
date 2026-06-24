@@ -15,6 +15,9 @@ from typing import Any, Dict, List, Optional, Set
 
 import mysql.connector
 from mysql.connector import Error as MySQLError
+import psycopg2
+from psycopg2 import Error as PostgreSQLError
+from psycopg2.extras import RealDictCursor
 from kafka import KafkaConsumer
 import redis
 import pika
@@ -207,6 +210,188 @@ class MySQLConnectionManager:
         if self.is_connected:
             self._connection.close()
             logger.info("[%s] MySQL connection closed", self._name)
+
+
+# =============================================================================
+# PostgreSQL Connection Manager
+# =============================================================================
+
+class PostgreSQLConnectionManager:
+    """
+    PostgreSQL connection with automatic reconnection and retry logic.
+    Provides identical API to MySQLConnectionManager for easy drop-in replacement.
+    """
+
+    def __init__(self, config: Dict[str, Any], name: str = 'default'):
+        self._config = config
+        self._name = name
+        self._connection = None
+
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            if exc_type is not None:
+                if self._connection and not self._connection.closed:
+                    self._connection.rollback()
+                    logger.warning("[%s] Transaction rolled back due to: %s", self._name, exc_val)
+            else:
+                if self._connection and not self._connection.closed:
+                    self._connection.commit()
+        finally:
+            self.close()
+        return False
+
+    @property
+    def connection(self):
+        return self._connection
+
+    @property
+    def is_connected(self) -> bool:
+        return self._connection is not None and not self._connection.closed
+
+    def connect(self, max_retries: int = 3, retry_delay: int = 5) -> bool:
+        """Establish PostgreSQL connection with retry."""
+        pg_config = {
+            'host': self._config.get('host'),
+            'port': self._config.get('port'),
+            'user': self._config.get('user') or self._config.get('username'),
+            'password': self._config.get('password'),
+            'database': self._config.get('database') or self._config.get('dbname'),
+        }
+        pg_config = {k: v for k, v in pg_config.items() if v is not None}
+
+        for attempt in range(max_retries):
+            try:
+                if self._connection and not self._connection.closed:
+                    self._connection.close()
+                self._connection = psycopg2.connect(**pg_config)
+                
+                # Automatically set search path if name is specified (e.g. 'staging')
+                if self._name and self._name != 'default':
+                    with self._connection.cursor() as cursor:
+                        cursor.execute(f'SET search_path TO "{self._name}", public;')
+                        self._connection.commit()
+                
+                logger.info(
+                    "[%s] Connected to PostgreSQL: %s",
+                    self._name, pg_config.get('database')
+                )
+                return True
+            except PostgreSQLError as e:
+                logger.error(
+                    "[%s] PostgreSQL Connection failed (attempt %d/%d): %s",
+                    self._name, attempt + 1, max_retries, e
+                )
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+        return False
+
+    def ensure_connected(self):
+        """Ensure connection is alive, reconnect if needed."""
+        if not self.is_connected:
+            logger.warning("[%s] PostgreSQL connection lost, reconnecting...", self._name)
+            self.connect()
+
+    def execute(self, query: str, values: list = None, commit: bool = True) -> bool:
+        """Execute a query with auto-reconnect. Raises PostgreSQLError on failure."""
+        try:
+            self.ensure_connected()
+            with self._connection.cursor() as cursor:
+                cursor.execute(query, values)
+                if commit:
+                    self._connection.commit()
+            return True
+        except PostgreSQLError as e:
+            logger.error("[%s] Query failed: %s", self._name, e)
+            logger.error("[%s] Query: %s...", self._name, query[:200])
+            try:
+                self._connection.rollback()
+            except Exception:
+                pass
+            raise
+
+    def execute_with_rowcount(self, query: str, values: list = None) -> int:
+        """Execute query and return affected row count. Returns -1 on error."""
+        try:
+            self.ensure_connected()
+            with self._connection.cursor() as cursor:
+                cursor.execute(query, values)
+                affected = cursor.rowcount
+                self._connection.commit()
+            return affected
+        except PostgreSQLError as e:
+            logger.error("[%s] Query failed: %s", self._name, e)
+            return -1
+
+    def fetch_one(self, query: str, values: list = None) -> Optional[Dict]:
+        """Fetch a single row as dictionary."""
+        try:
+            self.ensure_connected()
+            with self._connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(query, values)
+                result = cursor.fetchone()
+                if result is not None:
+                    result = dict(result)
+                return result
+        except PostgreSQLError as e:
+            logger.error("[%s] Fetch failed: %s", self._name, e)
+            return None
+
+    def fetch_all(self, query: str, values: list = None) -> List[Dict]:
+        """Fetch all rows as dictionaries."""
+        try:
+            self.ensure_connected()
+            with self._connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(query, values)
+                results = [dict(row) for row in cursor.fetchall()]
+                return results
+        except PostgreSQLError as e:
+            logger.error("[%s] Fetch all failed: %s", self._name, e)
+            return []
+
+    def load_table_columns(self, table_name: str) -> Optional[Set[str]]:
+        """Load column names for a specific table from PostgreSQL information_schema."""
+        try:
+            self.ensure_connected()
+            schema_name = self._name if self._name != 'default' else 'public'
+            query = """
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = %s 
+                  AND table_schema = %s
+            """
+            with self._connection.cursor() as cursor:
+                cursor.execute(query, (table_name, schema_name))
+                columns = {row[0] for row in cursor.fetchall()}
+            logger.info(
+                "[%s] Loaded %d columns for %s",
+                self._name, len(columns), table_name
+            )
+            return columns
+        except PostgreSQLError as e:
+            logger.error(
+                "[%s] Failed to load schema for %s: %s",
+                self._name, table_name, e
+            )
+            return None
+
+    def create_cursor(self, dictionary: bool = True):
+        self.ensure_connected()
+        if dictionary:
+            return self._connection.cursor(cursor_factory=RealDictCursor)
+        return self._connection.cursor()
+
+    def commit(self):
+        if self._connection:
+            self._connection.commit()
+
+    def close(self):
+        if self.is_connected:
+            self._connection.close()
+            logger.info("[%s] PostgreSQL connection closed", self._name)
 
 
 # =============================================================================

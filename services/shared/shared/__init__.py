@@ -9,9 +9,10 @@ Usage:
     from shared.connections import MySQLConnectionManager
 """
 from shared.logger import create_logger
-from shared.configs import BaseConfig, MySQLConfig, KafkaConfig, RedisConfig, RabbitMQConfig
+from shared.configs import BaseConfig, MySQLConfig, PostgreSQLConfig, KafkaConfig, RedisConfig, RabbitMQConfig
 from shared.connections import (
     MySQLConnectionManager,
+    PostgreSQLConnectionManager,
     KafkaConsumerFactory,
     RedisConnectionManager,
     RabbitMQConnectionManager,
@@ -22,8 +23,8 @@ from shared.base_consumer import BaseKafkaConsumer
 
 __all__ = [
     'create_logger',
-    'BaseConfig', 'MySQLConfig', 'KafkaConfig', 'RedisConfig', 'RabbitMQConfig',
-    'MySQLConnectionManager', 'KafkaConsumerFactory',
+    'BaseConfig', 'MySQLConfig', 'PostgreSQLConfig', 'KafkaConfig', 'RedisConfig', 'RabbitMQConfig',
+    'MySQLConnectionManager', 'PostgreSQLConnectionManager', 'KafkaConsumerFactory',
     'RedisConnectionManager', 'RabbitMQConnectionManager',
     'DebeziumTransformer', 'SQLQueryBuilder', 'BaseKafkaConsumer',
 ]
