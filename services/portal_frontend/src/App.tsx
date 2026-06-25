@@ -6,9 +6,11 @@ function App() {
     <div className="app-container">
       <div className="app-header">
         <div className="logo-container">
-          <img src="/logo_affina.png" alt="Affina Logo" className="logo" />
+          <div className="logo-icon-wrapper">
+            <span className="logo-icon">🛡️</span>
+          </div>
         </div>
-        <h1>Affina Portal</h1>
+        <h1>InsuStream Portal</h1>
         <p className="subtitle">Upload Excel files for CDC processing</p>
       </div>
       <div className="app-content">

@@ -13,7 +13,7 @@ services:
       - DB_HOST=${DB_HOST:-postgres}
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-postgres}
-      - DB_NAME=${DB_DATABASE:-postgres}
+      - DB_NAME=${DB_NAME_STAGING:-postgres}
       - DB_PORT=${DB_PORT:-5432}
     restart: always
     healthcheck:
