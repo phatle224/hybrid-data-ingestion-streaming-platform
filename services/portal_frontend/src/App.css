@@ -19,9 +19,24 @@
   justify-content: center;
 }
 
-.logo {
-  height: 60px;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+.logo-icon-wrapper {
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -4px rgba(37, 99, 235, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.logo-icon-wrapper:hover {
+  transform: translateY(-2px) rotate(5deg);
+}
+
+.logo-icon {
+  font-size: 32px;
 }
 
 .app-header h1 {

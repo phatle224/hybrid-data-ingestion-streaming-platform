@@ -9,13 +9,13 @@ class AppSettings:
     """Application settings class"""
     
     def __init__(self):
-        self.app_name = "Affina Portal CDC"
+        self.app_name = "InsuStream Portal CDC"
         self.version = "1.0.0"
         self.debug = os.getenv("DEBUG", "True") == "True"
         
         # CORS settings
         # In production, set CORS_ORIGINS env variable to restrict origins
-        # e.g., CORS_ORIGINS=https://portal.affina.vn,https://admin.affina.vn
+        # e.g., CORS_ORIGINS=https://portal.insustream.vn,https://admin.insustream.vn
         cors_env = os.getenv("CORS_ORIGINS", "")
         if cors_env:
             self.cors_origins: List[str] = [o.strip() for o in cors_env.split(",") if o.strip()]

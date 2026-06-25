@@ -31,7 +31,7 @@ class BaseInsuranceMapping(ABC):
 
     # Valid payment method values (termsFeePaymentMethod) - NOT NULL & enum
     VALID_PAYMENT_METHODS = {
-        'OCB', 'Payoo', 'Bảo Kim', 'VietcomBank', 'Nhà bảo hiểm', 'Affina'
+        'OCB', 'Payoo', 'Bảo Kim', 'VietcomBank', 'Nhà bảo hiểm', 'InsuStream'
     }
 
     # Valid company providers per insurance type (companyProviderName)
@@ -63,6 +63,7 @@ class BaseInsuranceMapping(ABC):
     }
 
     # Valid program names per insurance type (programName)
+    # Subclasses override INSURANCE_TYPE_KEY to select the right set
     VALID_PROGRAM_NAMES: Dict[str, set] = {
         'TRAVEL': {
             'Bảo hiểm du lịch Trong nước',
@@ -109,7 +110,7 @@ class BaseInsuranceMapping(ABC):
             'Master M1+', 'Master M2', 'Master M3',
             'An Gia Phát', 'Bảo hiểm An Gia Phát',
             'Bảo hiểm tai nạn cá nhân', 'Sức khỏe toàn diện cá nhân',
-            'Affina_care_renew', 'Affina 100', 'Bảo hiểm y tế vượt trội',
+            'InsuStream_care_renew', 'InsuStream 100', 'Bảo hiểm y tế vượt trội',
             'Tận Tâm', 'Y Tế Vượt Trội',
             'Bảo hiểm du lịch Pacific Cross',
             'Master_new', 'Master_renew',
@@ -121,7 +122,7 @@ class BaseInsuranceMapping(ABC):
             'Bảo Hiểm Ung Thư', 'Bảo hiểm bệnh hiểm nghèo',
             'Bảo hiểm tai nạn nhóm', 'Sức Khoẻ Toàn Diện',
             'SKTA', 'SKTA_new', 'Tai nạn 24/7',
-            'MIC Care', 'Affina_care', 'Affina_care_new', 'Phúc An Sinh',
+            'MIC Care', 'InsuStream_care', 'InsuStream_care_new', 'Phúc An Sinh',
         },
         'MOTO': {
             'Bảo hiểm Lái xe, người ngồi trên xe máy',

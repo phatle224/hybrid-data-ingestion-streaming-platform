@@ -114,7 +114,17 @@ Dự án dbt đã được tái cấu trúc thành công và triển khai theo c
 
 ---
 
-### Bước 5: Nâng Cấp Lên Cloud Warehouse (Snowflake)
+### Bước 5: Tích Hợp & Cấu Hình Portal Upload Ngoại Tuyến (React & FastAPI) (Đã Hoàn Thành - DONE)
+Để hỗ trợ luồng nạp dữ liệu offline song song với CDC online, cổng Portal đã được tích hợp hoàn toàn:
+1. **Chuyển đổi Driver DB sang PostgreSQL**: Cập nhật mã nguồn `portal_backend` từ MySQL sang sử dụng driver `psycopg2` và kết nối PostgreSQL (`configs/database/db_config.py`). Tìm kiếm (search path) được cấu hình trỏ thẳng vào schema `staging` của `insuranceWarehouse`.
+2. **Cấu hình biến môi trường**: 
+   * Cập nhật `services/portal_backend/.env` để kết nối cục bộ tới PostgreSQL.
+   * Đồng bộ `docker-compose.portal.yml` để nhận biến `DB_NAME_STAGING` thay thế cho biến `DB_DATABASE` cũ, bảo đảm khi chạy bằng docker compose portal sẽ ghi nhận chính xác dữ liệu vào cơ sở dữ liệu Staging (`insuranceWarehouse`).
+3. **Logic Deduplication Offline**: Portal Backend sử dụng cơ chế so khớp 7 trường nghiệp vụ để lọc trùng trực tiếp trong bảng `stgInsuranceContractObjectOffline` ở PostgreSQL trước khi ghi nhận hợp đồng mới, đảm bảo tính nhất quán nghiệp vụ (Online Wins) khi dbt chạy hợp nhất.
+
+---
+
+### Bước 6: Nâng Cấp Lên Cloud Warehouse (Snowflake)
 Để CV của bạn đạt mức "Production-Grade" chuẩn doanh nghiệp lớn:
 *   **Thiết kế luồng Data Lake / EL:** Thay vì CDC đi thẳng vào PostgreSQL Staging, bạn có thể cấu hình Debezium đẩy dữ liệu CDC lên **Amazon S3 / Google Cloud Storage**.
 *   **Snowpipe Ingestion:** Dùng Snowpipe của Snowflake để tự động copy dữ liệu từ Cloud Storage vào Snowflake Staging.
