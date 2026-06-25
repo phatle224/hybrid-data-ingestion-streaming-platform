@@ -43,3 +43,8 @@ services/portal_backend/uploads/*
 # Build outputs
 services/portal_frontend/dist/
 dist/
+
+# dbt
+**/target/
+**/dbt_packages/
+**/dbt_modules/

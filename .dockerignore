@@ -1,0 +1,10 @@
+.git
+.gitignore
+.venv
+**/venv
+**/.venv
+**/target
+**/logs
+debezium_data
+*.db
+*.log

@@ -11,10 +11,10 @@ import subprocess
 from datetime import datetime
 
 # Configurations
-INTERVAL_SECONDS = 300  # 5 minutes
+INTERVAL_SECONDS = int(os.getenv('SCHEDULER_INTERVAL', '300'))
 WORKSPACE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DBT_DIR = os.path.join(WORKSPACE_DIR, 'services', 'dbt_analytics')
-LOG_FILE = os.path.join(WORKSPACE_DIR, 'logs', 'dbt_scheduler.log')
+DBT_DIR = os.getenv('DBT_DIR', os.path.join(WORKSPACE_DIR, 'services', 'dbt_analytics'))
+LOG_FILE = os.getenv('LOG_FILE', os.path.join(WORKSPACE_DIR, 'logs', 'dbt_scheduler.log'))
 
 # Ensure logs directory exists
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)

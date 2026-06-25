@@ -1,0 +1,33 @@
+# ============================================================================
+# Docker Compose for dbt Incremental Scheduler Service
+# Usage: docker-compose -f docker-compose.scheduler.yml up -d
+# Note: Connects to staging database to run incremental transformations
+# ============================================================================
+
+version: '3.8'
+
+services:
+  dbt-scheduler:
+    build:
+      context: .
+      dockerfile: services/dbt_analytics/Dockerfile
+    container_name: cdc_dbt_scheduler
+    restart: always
+    environment:
+      - DB_HOST=${DB_HOST:-host.docker.internal}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-${DB_PASSWORD}}
+      - DB_DATABASE=${DB_NAME_STAGING:-insuranceWarehouse}
+      - SCHEDULER_INTERVAL=300
+    volumes:
+      - ./logs:/usr/app/dbt_analytics/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - cdc-network
+
+networks:
+  cdc-network:
+    name: cdc-network
+    external: true

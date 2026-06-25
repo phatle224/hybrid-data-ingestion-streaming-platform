@@ -88,19 +88,19 @@ hybrid-data-ingestion-platform/
 │   ├── portal/                  # Tài liệu hướng dẫn sử dụng và triển khai Portal
 │   ├── PROJECT_FLOW.md          # Chi tiết luồng đi dữ liệu của hệ thống
 │   └── SYSTEM_WORKFLOW.md       # Sơ đồ và logic nghiệp vụ tổng thể
-├── services/                    # TẤT CẢ các microservice chạy trong hệ thống
+├── services/                    # TẤT CẢ các dịch vụ chạy trong hệ thống
 │   ├── cdc_consumer/            # Consumer đồng bộ DB Source -> DB Staging
-│   ├── profiling/               # Consumer phân tích hành vi khách hàng real-time
+│   ├── dbt_analytics/           # Dự án dbt (Transformations, DWH, Data Marts)
 │   ├── shared/                  # Thư viện Python dùng chung (logger, db connection)
-│   ├── streaming_etl/           # Consumer đồng bộ DB Staging -> DB Reporting
 │   ├── portal_backend/          # FastAPI Backend tiếp nhận tệp Excel ngoại tuyến
-│   └── portal_frontend/         # React + TypeScript Frontend cho người dùng
+│   ├── portal_frontend/         # React + TypeScript Frontend cho người dùng
+│   ├── profiling/               # (Legacy) Consumer phân tích hành vi khách hàng
+│   └── streaming_etl/           # (Legacy) Consumer đồng bộ DB Staging -> DB Reporting
 ├── docker-compose.kafka.yml     # Quản lý Zookeeper, Kafka và Kafka-UI
 ├── docker-compose.redis.yml     # Quản lý Redis và Redis Commander (UI)
 ├── docker-compose.debezium.yml  # Quản lý Debezium Connect và Debezium-UI
 ├── docker-compose.consumer.yml  # Quản lý CDC Consumer
-├── docker-compose.streaming-etl.yml # Quản lý Streaming ETL Consumer
-├── docker-compose.profiling.yml # Quản lý Profiling Consumer
+├── docker-compose.scheduler.yml # Quản lý dbt Scheduler Daemon (Incremental sync)
 ├── docker-compose.portal.yml    # Quản lý Portal Frontend & Backend
 ├── .gitignore                   # Cấu hình bỏ qua tệp tin rác chung ở root
 ├── .env.example                 # Mẫu cấu hình tham số môi trường
@@ -197,16 +197,13 @@ Invoke-RestMethod -Uri "http://localhost:8083/connectors" `
 ---
 
 ### Bước 5: Triển Khai các Consumers
-Khởi động toàn bộ luồng xử lý và đồng bộ dữ liệu tự động:
+Khởi động các dịch vụ đồng bộ dữ liệu:
 ```powershell
 # Khởi chạy CDC Consumer (Source -> Staging)
 docker compose -f docker-compose.consumer.yml up -d --build
 
-# Khởi chạy Streaming ETL Consumer (Staging -> Reporting Wide-Table)
-docker compose -f docker-compose.streaming-etl.yml up -d --build
-
-# Khởi chạy Profiling Consumer (Tính toán chỉ số phân tích real-time)
-docker compose -f docker-compose.profiling.yml up -d --build
+# Khởi chạy dbt Incremental Scheduler (Staging -> Warehouse & Mart)
+docker compose -f docker-compose.scheduler.yml up -d --build
 ```
 
 ---
@@ -220,17 +217,7 @@ docker compose -f docker-compose.portal.yml up -d --build
 *   **Frontend Web UI**: [http://localhost:3010](http://localhost:3010)
 *   **Backend REST API**: [http://localhost:3011](http://localhost:3011)
 
----
 
-### Bước 7: Khởi Tạo Bộ Nhớ Đệm Chống Trùng Lặp (Redis Cache)
-Sau khi toàn bộ dịch vụ đã trực tuyến, tiến hành xây dựng Redis Cache từ dữ liệu Online hiện có để phục vụ tính năng chống trùng lặp khi người dùng upload Excel:
-```powershell
-docker exec -it cdc_portal_backend python -c "from services.duplicate_service import DuplicateService; print('Redis builder running...')"
-# Hoặc chạy trực tiếp script build cache từ Container Streaming ETL
-docker exec -it affina_streaming_etl python redis_cache_builder.py
-```
-
----
 
 ## 🛠️ Hướng Dẫn Giám Sát & Logs
 *   **Theo dõi logs hệ thống**: `docker compose -f docker-compose.<service>.yml logs -f`

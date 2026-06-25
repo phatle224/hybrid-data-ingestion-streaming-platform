@@ -2,11 +2,11 @@ dbt_analytics:
   outputs:
     dev:
       type: postgres
-      host: localhost
-      port: 5432
-      user: postgres
-      password: ${DB_PASSWORD}
-      dbname: insuranceWarehouse
+      host: "{{ env_var('DB_HOST', 'localhost') }}"
+      port: "{{ env_var('DB_PORT', '5432') | as_number }}"
+      user: "{{ env_var('DB_USER', 'postgres') }}"
+      password: "{{ env_var('DB_PASSWORD', '${DB_PASSWORD}') }}"
+      dbname: "{{ env_var('DB_DATABASE', 'insuranceWarehouse') }}"
       schema: public  # Default schema
       threads: 4
   target: dev
