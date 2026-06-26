@@ -925,224 +925,117 @@ CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectHouse_houseCityCode" O
 -- ============================================================================
 -- Table: stgInsuranceContractObjectOffline
 -- Purpose: Wide table chứa dữ liệu tổng hợp của tất cả loại bảo hiểm offline
+--          Được portal_backend ghi trực tiếp sau khi upload Excel.
+--
+-- Các loại bảo hiểm được hỗ trợ (insuranceType):
+--   VEHICLE, MOTO, HEALTH, TRAVEL, MEDICAL_SOCIAL
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS "stgInsuranceContractObjectOffline" (
-  "offline_id" SERIAL,
-  "contractObjectId" TEXT DEFAULT NULL,
-  "contractObjectIdDisplay" TEXT DEFAULT NULL,
-  "insuranceType" VARCHAR(50) NOT NULL,
-  "cardNumber" TEXT DEFAULT NULL,
-  "certificateNumberProvider" TEXT DEFAULT NULL,
-  "accountTPA" TEXT DEFAULT NULL,
-  "userId" TEXT DEFAULT NULL,
-  "contractId" TEXT DEFAULT NULL,
-  "contractIdDisplay" TEXT DEFAULT NULL,
-  "contractObjectSmeStatus" INTEGER DEFAULT NULL,
-  "contractIndividualStatus" INTEGER DEFAULT NULL,
-  "contractObjectStartDate" TIMESTAMP DEFAULT NULL,
-  "contractObjectEndDate" TIMESTAMP DEFAULT NULL,
-  "contractObjectIdProvider" TEXT DEFAULT NULL,
-  "contractObjectUrl" TEXT DEFAULT NULL,
-  "programTypeName" TEXT DEFAULT NULL,
-  "programTypeId" TEXT DEFAULT NULL,
-  "programId" TEXT DEFAULT NULL,
-  "programName" TEXT DEFAULT NULL,
-  "packageId" TEXT DEFAULT NULL,
-  "packageName" TEXT DEFAULT NULL,
-  "packageCodeFromProvider" TEXT DEFAULT NULL,
-  "programCodeMiningChannel" TEXT DEFAULT NULL,
-  "programDocument" TEXT DEFAULT '[]',
-  "fromAge" INTEGER DEFAULT NULL,
-  "toAge" INTEGER DEFAULT NULL,
-  "feeMainBenefit" NUMERIC(20,2) DEFAULT NULL,
-  "feeSideBenefit" NUMERIC(20,2) DEFAULT 0,
-  "feeInsurance" NUMERIC(20,2) DEFAULT NULL,
-  "maximumAmount" NUMERIC(20,2) DEFAULT NULL,
-  "preVatFeeMainBenefit" NUMERIC(20,2) DEFAULT 0,
-  "vatFeeMainBenefit" NUMERIC(20,2) DEFAULT 0,
-  "preVatFeeSideBenefit" NUMERIC(20,2) DEFAULT 0,
-  "vatFeeSideBenefit" NUMERIC(20,2) DEFAULT 0,
-  "preVatFeeInsurance" NUMERIC(20,2) DEFAULT 0,
-  "vatFeeInsurance" NUMERIC(20,2) DEFAULT 0,
-  "termsId" TEXT DEFAULT NULL,
-  "termsHighlight" TEXT DEFAULT NULL,
-  "termsBenefit" TEXT DEFAULT NULL,
-  "termsApplicableObject" TEXT DEFAULT NULL,
-  "termsFeePaymentMethod" TEXT DEFAULT NULL,
-  "termsHospital" TEXT DEFAULT NULL,
-  "majorName" TEXT DEFAULT NULL,
-  "majorId" TEXT DEFAULT NULL,
-  "productId" TEXT DEFAULT NULL,
-  "codeFromProvider" TEXT DEFAULT NULL,
-  "companyProvider" TEXT DEFAULT NULL,
-  "companyProviderName" TEXT DEFAULT NULL,
-  "contractObjectType" INTEGER DEFAULT NULL,
-  "peopleRelationship" INTEGER DEFAULT NULL,
-  "peopleName" TEXT DEFAULT NULL,
-  "peopleDob" DATE DEFAULT NULL,
-  "peopleGender" INTEGER DEFAULT NULL,
-  "peopleLicense" TEXT DEFAULT NULL,
-  "peopleLicenseType" INTEGER DEFAULT NULL,
-  "peoplePhone" VARCHAR(15) DEFAULT NULL,
-  "peopleEmail" TEXT DEFAULT NULL,
-  "peopleAddress" TEXT DEFAULT NULL,
-  "peopleDistrictsCode" INTEGER DEFAULT NULL,
-  "peopleWardsCode" INTEGER DEFAULT NULL,
-  "peopleStreet" TEXT DEFAULT NULL,
-  "peopleHouseNumber" TEXT DEFAULT NULL,
-  "peopleCityCode" INTEGER DEFAULT NULL,
-  "peopleNote" TEXT DEFAULT NULL,
-  "peopleUpload" TEXT DEFAULT NULL,
-  "peopleLicenseFront" TEXT DEFAULT NULL,
-  "peopleLicenseBack" TEXT DEFAULT NULL,
-  "peopleLicenseQr" TEXT DEFAULT NULL,
-  "name" TEXT DEFAULT NULL,
-  "dob" TEXT DEFAULT NULL,
-  "gender" INTEGER DEFAULT NULL,
-  "license" TEXT DEFAULT NULL,
-  "licenseType" INTEGER DEFAULT NULL,
-  "licenseFront" TEXT DEFAULT NULL,
-  "licenseBack" TEXT DEFAULT NULL,
-  "phone" VARCHAR(15) DEFAULT NULL,
-  "email" TEXT DEFAULT NULL,
-  "address" TEXT DEFAULT NULL,
-  "districtsCode" INTEGER DEFAULT NULL,
-  "wardsCode" INTEGER DEFAULT NULL,
-  "street" TEXT DEFAULT NULL,
-  "houseNumber" TEXT DEFAULT NULL,
-  "cityCode" INTEGER DEFAULT NULL,
-  "customerType" INTEGER DEFAULT NULL,
-  "upload" TEXT DEFAULT NULL,
-  "note" TEXT DEFAULT NULL,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "createdBy" TEXT DEFAULT NULL,
-  "modifiedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "modifiedBy" TEXT DEFAULT NULL,
-  "modifiedDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  "minDate" INTEGER DEFAULT NULL,
-  "contractObjectIdPrev" TEXT DEFAULT NULL,
-  "memberId" TEXT DEFAULT NULL,
-  "contractObjectCardDocument" TEXT DEFAULT NULL,
-  "contractObjectCardImage" TEXT DEFAULT NULL,
-  "paymentType" INTEGER DEFAULT NULL,
-  "document" TEXT DEFAULT NULL,
-  "vehicleId" TEXT DEFAULT NULL,
-  "licensePlates" TEXT DEFAULT NULL,
-  "chassisNumber" TEXT DEFAULT NULL,
-  "engineNumber" TEXT DEFAULT NULL,
-  "maker" TEXT DEFAULT NULL,
-  "type" INTEGER DEFAULT NULL,
-  "line" TEXT DEFAULT NULL,
-  "seatNumber" INTEGER DEFAULT NULL,
-  "programObject" INTEGER DEFAULT NULL,
-  "nationality" TEXT DEFAULT NULL,
-  "nationalityId" TEXT DEFAULT NULL,
-  "domesticOrInternational" INTEGER DEFAULT NULL,
-  "departure" TEXT DEFAULT NULL,
-  "destination" INTEGER DEFAULT NULL,
-  "destinationDomestic" TEXT DEFAULT NULL,
-  "journey" TEXT DEFAULT NULL,
-  "startDateJourney" DATE DEFAULT NULL,
-  "endDateJourney" DATE DEFAULT NULL,
-  "programObjectFromProvider" TEXT DEFAULT NULL,
-  "destinationFromProvider" TEXT DEFAULT NULL,
-  "codePackageFromProvider" TEXT DEFAULT NULL,
-  "adults" INTEGER DEFAULT NULL,
-  "children" INTEGER DEFAULT NULL,
-  "payerUserId" TEXT DEFAULT NULL,
-  "payerName" TEXT DEFAULT NULL,
-  "payerDob" DATE DEFAULT NULL,
-  "payerGender" INTEGER DEFAULT NULL,
-  "payerLicense" TEXT DEFAULT NULL,
-  "payerLicenseType" INTEGER DEFAULT NULL,
-  "payerLicenseFront" TEXT DEFAULT NULL,
-  "payerLicenseBack" TEXT DEFAULT NULL,
-  "payerPhone" VARCHAR(15) DEFAULT NULL,
-  "payerEmail" TEXT DEFAULT NULL,
-  "payerAddress" TEXT DEFAULT NULL,
-  "payerDistrictsCode" INTEGER DEFAULT NULL,
-  "payerWardsCode" INTEGER DEFAULT NULL,
-  "payerStreet" TEXT DEFAULT NULL,
-  "payerHouseNumber" TEXT DEFAULT NULL,
-  "payerCityCode" INTEGER DEFAULT NULL,
-  "payerNote" TEXT DEFAULT NULL,
-  "payerUpload" TEXT DEFAULT NULL,
-  "payerCustomerType" INTEGER DEFAULT NULL,
-  "declarationType" INTEGER DEFAULT NULL,
-  "remunerationType" INTEGER DEFAULT NULL,
-  "oldCardStartDate" DATE DEFAULT NULL,
-  "oldCardEndDate" DATE DEFAULT NULL,
-  "renewal" INTEGER DEFAULT NULL,
-  "socialFamilyId" TEXT DEFAULT NULL,
-  "socialId" TEXT DEFAULT NULL,
-  "monthlyIncome" NUMERIC(20,2) DEFAULT 0,
-  "paymentPeriod" INTEGER DEFAULT NULL,
-  "supportBudget" NUMERIC(20,2) DEFAULT 0,
-  "oldBhxhCodeUnit" TEXT DEFAULT NULL,
-  "oldRegisterDate" TEXT DEFAULT NULL,
-  "percent" DOUBLE PRECISION DEFAULT NULL,
-  "discountAmount" NUMERIC(10,2) DEFAULT NULL,
-  "fiveYearDate" TEXT DEFAULT NULL,
-  "medicalId" TEXT DEFAULT NULL,
-  "hospitalCode" TEXT DEFAULT NULL,
-  "hospitalName" TEXT DEFAULT NULL,
-  "hospitalCityRegisteredCode" INTEGER DEFAULT NULL,
-  "hospitalCityRegisteredName" TEXT DEFAULT NULL,
-  "nation" TEXT DEFAULT NULL,
-  "ethnicity" TEXT DEFAULT NULL,
-  "thirdPartyRequestId" TEXT DEFAULT NULL,
-  "reqCode" DOUBLE PRECISION DEFAULT NULL,
-  "contractIdProvider" TEXT DEFAULT NULL,
-  "contractStatus" INTEGER DEFAULT NULL,
-  "buyHelp" INTEGER DEFAULT NULL,
-  "buyerId" TEXT DEFAULT NULL,
-  "contractType" INTEGER DEFAULT NULL,
-  "contractIdRoot" TEXT DEFAULT NULL,
-  "companySale" INTEGER DEFAULT NULL,
-  "branchSale" DOUBLE PRECISION DEFAULT NULL,
-  "branchSaleName" TEXT DEFAULT NULL,
-  "companySaleName" TEXT DEFAULT NULL,
-  "contractPeriod" INTEGER DEFAULT NULL,
-  "contractPeriodValue" INTEGER DEFAULT NULL,
-  "contractStartDate" DATE DEFAULT NULL,
-  "contractEndDate" DATE DEFAULT NULL,
-  "voucherId" TEXT DEFAULT NULL,
-  "voucherCode" TEXT DEFAULT NULL,
-  "amountDiscount" TEXT DEFAULT NULL,
-  "amount" INTEGER DEFAULT NULL,
-  "commission" INTEGER DEFAULT NULL,
-  "amountPay" INTEGER DEFAULT NULL,
-  "redBill" INTEGER DEFAULT NULL,
-  "paymentMethod" INTEGER DEFAULT NULL,
-  "reasonCancel" TEXT DEFAULT NULL,
-  "codeErrorCancel" TEXT DEFAULT NULL,
-  "messageError" TEXT DEFAULT NULL,
-  "referralCode" TEXT DEFAULT NULL,
-  "saleId" TEXT DEFAULT NULL,
-  "bonusAmount" TEXT DEFAULT NULL,
-  "fromLead" TEXT DEFAULT NULL,
-  "source" INTEGER DEFAULT NULL,
-  "outsideCreatedAt" TIMESTAMP DEFAULT NULL,
-  "outsidePaymentAt" TIMESTAMP DEFAULT NULL,
-  "outsidePaymentId" TEXT DEFAULT NULL,
-  "channelId" TEXT DEFAULT NULL,
-  "levelId" TEXT DEFAULT NULL,
-  "certFile" TEXT DEFAULT NULL,
-  "orderNumber" TEXT DEFAULT NULL,
-  "userId_1" TEXT DEFAULT NULL,
-  "contractId_2" TEXT DEFAULT NULL,
-  "contractObjectType_3" INTEGER DEFAULT NULL,
-  "customerType_4" INTEGER DEFAULT NULL,
-  "upload_5" TEXT DEFAULT NULL,
-  "createdAt_7" TEXT DEFAULT NULL,
-  "modifiedAt_9" TEXT DEFAULT NULL,
-  PRIMARY KEY ("offline_id")
+  "offline_id"                      SERIAL PRIMARY KEY,
+
+  -- ── Metadata chung ────────────────────────────────────────────────────────
+  "insuranceType"                   VARCHAR(50)   NOT NULL,          -- VEHICLE | MOTO | HEALTH | TRAVEL | MEDICAL_SOCIAL
+  "contractId"                      TEXT          NOT NULL,          -- Số hợp đồng / Số GCN / Mã tờ khai
+  "majorName"                       TEXT          DEFAULT NULL,      -- Loại bảo hiểm (Sản phẩm)
+  "programName"                     TEXT          DEFAULT NULL,      -- Chương trình / Plan
+  "companyProviderName"             TEXT          DEFAULT NULL,      -- Nhà bảo hiểm
+  "companyProvider"                 TEXT          DEFAULT NULL,      -- Mã nhà bảo hiểm (nếu có)
+  "saleId"                          TEXT          DEFAULT NULL,      -- Code sale / Tên sale
+  "programCodeMiningChannel"        TEXT          DEFAULT NULL,      -- Channel (DSA, TSA, Renew…)
+  "termsFeePaymentMethod"           TEXT          DEFAULT NULL,      -- Hình thức thanh toán
+  "modifiedAt"                      TIMESTAMP     DEFAULT NULL,      -- Ngày update/cập nhật từ Excel
+
+  -- ── Phí bảo hiểm ─────────────────────────────────────────────────────────
+  "feeInsurance"                    NUMERIC(20,2) DEFAULT NULL,      -- Tổng phí BH (tất cả loại)
+  "feeMainBenefit"                  NUMERIC(20,2) DEFAULT NULL,      -- Phí chính (MOTO: TNDS BẮT BUỘC)
+  "feeSideBenefit"                  NUMERIC(20,2) DEFAULT NULL,      -- Phí phụ  (MOTO: TAI NẠN NNTX)
+  "feeAdjustment"                   NUMERIC(20,2) DEFAULT NULL,      -- Phí điều chỉnh (HEALTH)
+  "amountPay"                       NUMERIC(20,2) DEFAULT NULL,      -- Số tiền thanh toán (HEALTH)
+  "payment_date"                    DATE          DEFAULT NULL,      -- Ngày thanh toán (tất cả loại)
+
+  -- ── Thông tin hợp đồng chung ─────────────────────────────────────────────
+  "contractObjectStartDate"         TIMESTAMP     DEFAULT NULL,      -- Ngày bắt đầu hiệu lực (VEHICLE, MOTO, MEDICAL_SOCIAL)
+  "contractObjectEndDate"           TIMESTAMP     DEFAULT NULL,      -- Ngày kết thúc hiệu lực (VEHICLE, MOTO, MEDICAL_SOCIAL)
+  "contractStartDate"               DATE          DEFAULT NULL,      -- Ngày hiệu lực (HEALTH)
+  "contractEndDate"                 DATE          DEFAULT NULL,      -- Ngày kết thúc (HEALTH)
+  "contractPeriodValue"             INTEGER       DEFAULT NULL,      -- Số năm / ngày BH (VEHICLE, MOTO)
+  "certificateNumberProvider"       TEXT          DEFAULT NULL,      -- Số GCNBH (HEALTH)
+  "contractStatus"                  INTEGER       DEFAULT NULL,      -- Trạng thái hợp đồng (MEDICAL_SOCIAL)
+
+  -- ── Người được bảo hiểm (NĐBH / people*) ────────────────────────────────
+  "peopleName"                      TEXT          DEFAULT NULL,      -- Họ tên NĐBH (business key)
+  "peopleDob"                       DATE          DEFAULT NULL,      -- Ngày sinh NĐBH
+  "peopleGender"                    INTEGER       DEFAULT NULL,      -- Giới tính (0=Nữ, 1=Nam)
+  "peopleLicense"                   TEXT          DEFAULT NULL,      -- CCCD / CMND NĐBH
+  "passport"                        TEXT          DEFAULT NULL,      -- Hộ chiếu NĐBH (HEALTH)
+  "peoplePhone"                     VARCHAR(15)   DEFAULT NULL,      -- SĐT NĐBH
+  "peopleEmail"                     TEXT          DEFAULT NULL,      -- Email NĐBH
+  "peopleAddress"                   TEXT          DEFAULT NULL,      -- Địa chỉ NĐBH
+  "peopleRelationship"              INTEGER       DEFAULT NULL,      -- Mối quan hệ (0=Bản thân, 1=Bố/Mẹ…)
+
+  -- ── Người mua bảo hiểm (Bên mua / payer*) ───────────────────────────────
+  "payerName"                       TEXT          DEFAULT NULL,      -- Họ tên người mua
+  "payerDob"                        DATE          DEFAULT NULL,      -- Ngày sinh người mua
+  "payerGender"                     INTEGER       DEFAULT NULL,      -- Giới tính người mua
+  "payerLicense"                    TEXT          DEFAULT NULL,      -- CCCD / CMND người mua
+  "payerPhone"                      VARCHAR(15)   DEFAULT NULL,      -- SĐT người mua
+  "payerEmail"                      TEXT          DEFAULT NULL,      -- Email người mua
+  "payerAddress"                    TEXT          DEFAULT NULL,      -- Địa chỉ người mua
+
+  -- ── HEALTH — thông tin gói quyền lợi ─────────────────────────────────────
+  "outpatient_benefit"              TEXT          DEFAULT NULL,      -- Ngoại trú
+  "dental_benefit"                  TEXT          DEFAULT NULL,      -- Nha khoa
+  "maternity_benefit"               TEXT          DEFAULT NULL,      -- Thai sản
+  "topup_benefit"                   TEXT          DEFAULT NULL,      -- Top-up
+  "invoiceInfo"                     TEXT          DEFAULT NULL,      -- Thông tin xuất hoá đơn
+  "leadPhone"                       VARCHAR(15)   DEFAULT NULL,      -- Phone trên lead
+  "customerPhone"                   VARCHAR(15)   DEFAULT NULL,      -- Phone khách hàng
+  "contactName"                     TEXT          DEFAULT NULL,      -- Tên liên hệ
+
+  -- ── VEHICLE — thông tin xe ô tô ──────────────────────────────────────────
+  "licensePlate"                    TEXT          DEFAULT NULL,      -- Biển số xe (Vehicle)
+  "chassisNumber"                   TEXT          DEFAULT NULL,      -- Số khung (Vehicle + Moto)
+  "engineNumber"                    TEXT          DEFAULT NULL,      -- Số máy (Vehicle + Moto)
+  "vehicleType"                     TEXT          DEFAULT NULL,      -- Loại xe (Vehicle: text từ Excel 'Loại xe')
+  "brand"                           TEXT          DEFAULT NULL,      -- Hiệu xe / Nhãn hiệu (Vehicle)
+  "vehicleValue"                    NUMERIC(20,2) DEFAULT NULL,      -- Giá trị xe
+  "usagePurpose"                    TEXT          DEFAULT NULL,      -- Mục đích sử dụng
+  "manufactureYear"                 INTEGER       DEFAULT NULL,      -- Năm sản xuất
+  "seatNumber"                      INTEGER       DEFAULT NULL,      -- Số chỗ ngồi (Vehicle)
+  "insurance_days"                  INTEGER       DEFAULT NULL,      -- Số ngày bảo hiểm (Vehicle)
+
+  -- ── MOTO — thông tin xe máy ──────────────────────────────────────────────
+  "licensePlates"                   TEXT          DEFAULT NULL,      -- Biển số xe (Moto)
+  "maker"                           TEXT          DEFAULT NULL,      -- Nhãn hiệu xe (Moto)
+  "packageName"                     TEXT          DEFAULT NULL,      -- Loại xe máy (Moto)
+  "issue_date"                      DATE          DEFAULT NULL,      -- Ngày cấp đơn (Moto)
+
+  -- ── TRAVEL — thông tin chuyến đi ─────────────────────────────────────────
+  "startDateJourney"                DATE          DEFAULT NULL,      -- Ngày đi
+  "endDateJourney"                  DATE          DEFAULT NULL,      -- Ngày về
+  "journey_days"                    INTEGER       DEFAULT NULL,      -- Số ngày hành trình
+  "destination_text"                TEXT          DEFAULT NULL,      -- Nơi đến (text từ Excel)
+  "domesticOrInternational_text"    TEXT          DEFAULT NULL,      -- Phạm vi (Trong nước / Quốc tế)
+  "upload_date"                     DATE          DEFAULT NULL,      -- Ngày upload (cột 'Ngày' trong Travel.xlsx)
+
+  -- ── MEDICAL_SOCIAL — bảo hiểm y tế xã hội ───────────────────────────────
+  "socialId"                        TEXT          DEFAULT NULL,      -- Mã BHXH
+  "renewal"                         INTEGER       DEFAULT NULL,      -- Phương án KH (Gia hạn)
+
+  -- ── Audit timestamps ──────────────────────────────────────────────────────
+  "createdAt"                       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdBy"                       TEXT          DEFAULT NULL,
+  "modifiedDate"                    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_insuranceType" ON "stgInsuranceContractObjectOffline"("insuranceType");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_contractId" ON "stgInsuranceContractObjectOffline"("contractId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_userId" ON "stgInsuranceContractObjectOffline"("userId");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_modifiedDate" ON "stgInsuranceContractObjectOffline"("modifiedDate");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_packageName" ON "stgInsuranceContractObjectOffline"("packageName");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_contractStatus" ON "stgInsuranceContractObjectOffline"("contractStatus");
-CREATE INDEX IF NOT EXISTS "idx_stgInsuranceContractObjectOffline_createdAt" ON "stgInsuranceContractObjectOffline"("createdAt");
+-- Indexes
+CREATE INDEX IF NOT EXISTS "idx_stgOffline_insuranceType"   ON "stgInsuranceContractObjectOffline"("insuranceType");
+CREATE INDEX IF NOT EXISTS "idx_stgOffline_contractId"      ON "stgInsuranceContractObjectOffline"("contractId");
+CREATE INDEX IF NOT EXISTS "idx_stgOffline_peopleName"      ON "stgInsuranceContractObjectOffline"("peopleName");
+CREATE INDEX IF NOT EXISTS "idx_stgOffline_majorName"       ON "stgInsuranceContractObjectOffline"("majorName");
+CREATE INDEX IF NOT EXISTS "idx_stgOffline_companyProvider" ON "stgInsuranceContractObjectOffline"("companyProviderName");
+CREATE INDEX IF NOT EXISTS "idx_stgOffline_payment_date"    ON "stgInsuranceContractObjectOffline"("payment_date");
+CREATE INDEX IF NOT EXISTS "idx_stgOffline_createdAt"       ON "stgInsuranceContractObjectOffline"("createdAt");
+CREATE INDEX IF NOT EXISTS "idx_stgOffline_saleId"          ON "stgInsuranceContractObjectOffline"("saleId");
+CREATE INDEX IF NOT EXISTS "idx_stgOffline_channel"         ON "stgInsuranceContractObjectOffline"("programCodeMiningChannel");
+

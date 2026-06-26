@@ -1,3 +1,4 @@
+import { Shield } from '@phosphor-icons/react'
 import UploadForm from './components/UploadForm'
 import './App.css'
 
@@ -7,11 +8,11 @@ function App() {
       <div className="app-header">
         <div className="logo-container">
           <div className="logo-icon-wrapper">
-            <span className="logo-icon">🛡️</span>
+            <Shield size={32} weight="duotone" className="logo-icon" />
           </div>
         </div>
-        <h1>InsuStream Portal</h1>
-        <p className="subtitle">Upload Excel files for CDC processing</p>
+        <h1>Insurance Portal</h1>
+        <p className="subtitle serif-italic">Upload Excel files for CDC processing</p>
       </div>
       <div className="app-content">
         <UploadForm />
@@ -21,4 +22,5 @@ function App() {
 }
 
 export default App
+
 

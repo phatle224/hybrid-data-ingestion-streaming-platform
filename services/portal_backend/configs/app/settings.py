@@ -45,49 +45,55 @@ class AppSettings:
         self.duplicate_check_keys = ["contractId", "peopleName", "majorName", "companyProviderName", "startDate", "endDate", "feeInsurance"]
         self.required_fields = ["contractId", "peopleName", "majorName", "companyProviderName"]
         
-        # Valid database schema columns (from stgContractObjectOffline table)
+        # Valid database schema columns (from stgInsuranceContractObjectOffline table)
         # Only these columns can be inserted into database
         self.valid_db_columns: Set[str] = {
-            'contractObjectId', 'contractObjectIdDisplay', 'insuranceType', 'cardNumber',
-            'certificateNumberProvider', 'accountTPA', 'userId', 'contractId', 'contractIdDisplay',
-            'contractObjectSmeStatus', 'contractIndividualStatus', 'contractObjectStartDate',
-            'contractObjectEndDate', 'contractObjectIdProvider', 'contractObjectUrl',
-            'programTypeName', 'programTypeId', 'programId', 'programName', 'packageId',
-            'packageName', 'packageCodeFromProvider', 'programCodeMiningChannel', 'programDocument',
-            'fromAge', 'toAge', 'feeMainBenefit', 'feeSideBenefit', 'feeInsurance', 'maximumAmount',
-            'preVatFeeMainBenefit', 'vatFeeMainBenefit', 'preVatFeeSideBenefit', 'vatFeeSideBenefit',
-            'preVatFeeInsurance', 'vatFeeInsurance', 'termsId', 'termsHighlight', 'termsBenefit',
-            'termsApplicableObject', 'termsFeePaymentMethod', 'termsHospital', 'majorName', 'majorId',
-            'productId', 'codeFromProvider', 'companyProvider', 'companyProviderName',
-            'contractObjectType', 'peopleRelationship', 'peopleName', 'peopleDob', 'peopleGender',
-            'peopleLicense', 'peopleLicenseType', 'peoplePhone', 'peopleEmail', 'peopleAddress',
-            'peopleDistrictsCode', 'peopleWardsCode', 'peopleStreet', 'peopleHouseNumber',
-            'peopleCityCode', 'peopleNote', 'peopleUpload', 'peopleLicenseFront', 'peopleLicenseBack',
-            'peopleLicenseQr', 'name', 'dob', 'gender', 'license', 'licenseType', 'licenseFront',
-            'licenseBack', 'phone', 'email', 'address', 'districtsCode', 'wardsCode', 'street',
-            'houseNumber', 'cityCode', 'customerType', 'upload', 'note', 'createdAt', 'createdBy',
-            'modifiedAt', 'modifiedBy', 'modifiedDate', 'minDate', 'contractObjectIdPrev',
-            'memberId', 'contractObjectCardDocument', 'contractObjectCardImage', 'paymentType',
-            'document', 'vehicleId', 'licensePlates', 'chassisNumber', 'engineNumber', 'maker',
-            'type', 'line', 'seatNumber', 'programObject', 'nationality', 'nationalityId',
-            'domesticOrInternational', 'departure', 'destination', 'destinationDomestic', 'journey',
-            'startDateJourney', 'endDateJourney', 'programObjectFromProvider', 'destinationFromProvider',
-            'codePackageFromProvider', 'adults', 'children', 'payerUserId', 'payerName', 'payerDob',
-            'payerGender', 'payerLicense', 'payerLicenseType', 'payerLicenseFront', 'payerLicenseBack',
-            'payerPhone', 'payerEmail', 'payerAddress', 'payerDistrictsCode', 'payerWardsCode',
-            'payerStreet', 'payerHouseNumber', 'payerCityCode', 'payerNote', 'payerUpload',
-            'payerCustomerType', 'declarationType', 'remunerationType', 'oldCardStartDate',
-            'oldCardEndDate', 'renewal', 'socialFamilyId', 'socialId', 'monthlyIncome', 'paymentPeriod',
-            'supportBudget', 'oldBhxhCodeUnit', 'oldRegisterDate', 'percent', 'discountAmount',
-            'fiveYearDate', 'medicalId', 'hospitalCode', 'hospitalName', 'hospitalCityRegisteredCode',
-            'hospitalCityRegisteredName', 'nation', 'ethnicity', 'thirdPartyRequestId', 'reqCode',
-            'contractIdProvider', 'contractStatus', 'buyHelp', 'buyerId', 'contractType',
-            'contractIdRoot', 'companySale', 'branchSale', 'branchSaleName', 'companySaleName',
-            'contractPeriod', 'contractPeriodValue', 'contractStartDate', 'contractEndDate',
-            'voucherId', 'voucherCode', 'amountDiscount', 'amount', 'commission', 'amountPay',
-            'redBill', 'paymentMethod', 'reasonCancel', 'codeErrorCancel', 'messageError',
-            'referralCode', 'saleId', 'bonusAmount', 'fromLead', 'source', 'outsideCreatedAt',
-            'outsidePaymentAt', 'outsidePaymentId', 'channelId', 'levelId', 'certFile', 'orderNumber',
+            # ── Metadata chung ──────────────────────────────────────────────
+            'insuranceType', 'contractId', 'majorName', 'programName',
+            'companyProviderName', 'companyProvider',
+            'saleId', 'programCodeMiningChannel', 'termsFeePaymentMethod',
+            'modifiedAt',
+
+            # ── Phí bảo hiểm ────────────────────────────────────────────────
+            'feeInsurance', 'feeMainBenefit', 'feeSideBenefit',
+            'feeAdjustment', 'amountPay', 'payment_date',
+
+            # ── Thông tin hợp đồng chung ────────────────────────────────────
+            'contractObjectStartDate', 'contractObjectEndDate',
+            'contractStartDate', 'contractEndDate',
+            'contractPeriodValue', 'certificateNumberProvider', 'contractStatus',
+
+            # ── Người được bảo hiểm (people*) ───────────────────────────────
+            'peopleName', 'peopleDob', 'peopleGender',
+            'peopleLicense', 'passport',
+            'peoplePhone', 'peopleEmail', 'peopleAddress', 'peopleRelationship',
+
+            # ── Người mua bảo hiểm (payer*) ─────────────────────────────────
+            'payerName', 'payerDob', 'payerGender',
+            'payerLicense', 'payerPhone', 'payerEmail', 'payerAddress',
+
+            # ── HEALTH — quyền lợi & liên hệ ────────────────────────────────
+            'outpatient_benefit', 'dental_benefit', 'maternity_benefit',
+            'topup_benefit', 'invoiceInfo',
+            'leadPhone', 'customerPhone', 'contactName',
+
+            # ── VEHICLE — xe ô tô ────────────────────────────────────────────
+            'licensePlate', 'chassisNumber', 'engineNumber',
+            'vehicleType', 'brand', 'vehicleValue',
+            'usagePurpose', 'manufactureYear', 'seatNumber', 'insurance_days',
+
+            # ── MOTO — xe máy ────────────────────────────────────────────────
+            'licensePlates', 'maker', 'packageName', 'issue_date',
+
+            # ── TRAVEL — chuyến đi ───────────────────────────────────────────
+            'startDateJourney', 'endDateJourney', 'journey_days',
+            'destination_text', 'domesticOrInternational_text', 'upload_date',
+
+            # ── MEDICAL_SOCIAL ───────────────────────────────────────────────
+            'socialId', 'renewal',
+
+            # ── Audit ────────────────────────────────────────────────────────
+            'createdAt', 'createdBy', 'modifiedDate',
         }
 
 

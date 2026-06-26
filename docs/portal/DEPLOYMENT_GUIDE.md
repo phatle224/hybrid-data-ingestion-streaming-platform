@@ -1,4 +1,4 @@
-# Affina Portal CDC - Production Deployment
+# InsuStream Portal CDC - Production Deployment
 
 ## Tech Stack
 FastAPI (Backend) | React + TypeScript (Frontend) | Oracle/MySQL Database | Docker

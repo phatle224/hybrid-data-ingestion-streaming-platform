@@ -20,7 +20,7 @@ ENUM:
 - Bảo Kim
 - VietcomBank
 - Nhà bảo hiểm
-- Affina
+- InsuStream
 ==> Thì ở bước này bạn có thể check chuỗi xem có thuộc 1 trong các giá trị trên không, nếu không sẽ trả về lỗi validate ngay tại bước này. Nếu để trống cũng trả về lỗi vì đã set NOT NULL. ví dụ trong excel đang lưu là "Nhà BH" thì bạn có thể map "Nhà BH" thành "Nhà bảo hiểm" trước khi validate, hoặc bạn có thể yêu cầu user phải nhập đúng giá trị "Nhà bảo hiểm" trong excel để tránh lỗi mapping. Tùy vào mức độ strict bạn muốn áp dụng cho dữ liệu đầu vào ==> tương tự các giá trị còn lại
 
 3. Nhà cung cấp bảo hiểm (NOT NULL) --> 'companyProviderName' (chưa xử lý ENUM)
@@ -203,8 +203,8 @@ Bảo hiểm sức khỏe:
 - Bảo hiểm An Gia Phát
 - Bảo hiểm tai nạn cá nhân
 - Sức khỏe toàn diện cá nhân
-- Affina_care_renew
-- Affina 100
+- InsuStream_care_renew
+- InsuStream 100
 - Bảo hiểm y tế vượt trội
 - Tận Tâm
 - Y Tế Vượt Trội
@@ -232,8 +232,8 @@ Bảo hiểm sức khỏe:
 - SKTA_new
 - Tai nạn 24/7
 - MIC Care
-- Affina_care
-- Affina_care_new
+- InsuStream_care
+- InsuStream_care_new
 - Phúc An Sinh
 
 Bảo hiểm xe máy:

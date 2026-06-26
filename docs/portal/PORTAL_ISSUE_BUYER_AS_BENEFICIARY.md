@@ -111,6 +111,6 @@ Không ghi đè nếu người thụ hưởng đã có thông tin riêng.
 ---
 ## 6. Lý do implement ở portal, không phải CDC pipeline
 
-- Logic fill phải xảy ra **tại bước đọc Excel**, trước khi lưu vào `insuranceWarehouse`
+- Logic fill phải xảy ra **tại bước đọc Excel**, trước khi lưu vào `staging schema (insuranceWarehouse)`
 - Nếu fix ở tầng CDC reporting (merge_etl), staging vẫn lưu NULL → data không đúng source of truth
 - Portal là điểm entry của offline data → đây là nơi duy nhất có thể can thiệp trước khi data lan ra toàn pipeline

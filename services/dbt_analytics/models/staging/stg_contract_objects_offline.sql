@@ -4,29 +4,31 @@ WITH source AS (
 
 cleaned AS (
     SELECT
-        "contractObjectId" AS contract_object_id,
+        "offline_id"::text AS contract_object_id,
         "contractId" AS contract_id,
         "insuranceType" AS insurance_type,
         'offline' AS source_type,
         
-        -- Use COALESCE to fallback to name/dob/phone/email if people fields are null
-        TRIM(INITCAP(COALESCE("peopleName", "name"))) AS people_name,
-        COALESCE("peopleDob", "dob"::date) AS people_dob,
-        COALESCE("peopleGender", "gender") AS people_gender,
+        TRIM(INITCAP("peopleName")) AS people_name,
+        "peopleDob" AS people_dob,
+        "peopleGender" AS people_gender,
         
         -- Standardize phone numbers
         CASE 
-            WHEN COALESCE("peoplePhone", "phone") LIKE '+84%' THEN '0' || SUBSTRING(COALESCE("peoplePhone", "phone") FROM 4)
-            WHEN COALESCE("peoplePhone", "phone") LIKE '84%' THEN '0' || SUBSTRING(COALESCE("peoplePhone", "phone") FROM 3)
-            ELSE TRIM(COALESCE("peoplePhone", "phone"))
+            WHEN "peoplePhone" LIKE '+84%' THEN '0' || SUBSTRING("peoplePhone" FROM 4)
+            WHEN "peoplePhone" LIKE '84%' THEN '0' || SUBSTRING("peoplePhone" FROM 3)
+            ELSE TRIM("peoplePhone")
         END AS people_phone,
         
-        TRIM(LOWER(COALESCE("peopleEmail", "email"))) AS people_email,
-        COALESCE("peopleAddress", "address") AS people_address,
+        TRIM(LOWER("peopleEmail")) AS people_email,
+        "peopleAddress" AS people_address,
         "majorName" AS major_name,
         "companyProviderName" AS company_provider_name,
-        "contractObjectStartDate" AS start_date,
-        "contractObjectEndDate" AS end_date,
+        
+        -- Health uses contractStartDate, others use contractObjectStartDate
+        COALESCE("contractObjectStartDate", "contractStartDate"::timestamp) AS start_date,
+        COALESCE("contractObjectEndDate", "contractEndDate"::timestamp) AS end_date,
+        
         "feeInsurance" AS fee_insurance,
         "createdAt" AS created_at,
         
@@ -39,3 +41,4 @@ cleaned AS (
 )
 
 SELECT * FROM cleaned
+

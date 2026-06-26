@@ -77,7 +77,7 @@
 | 27 | ` ` (blank header) | Ngày cập nhật | `modifiedAt` | date | **DD/MM/YYYY** → `YYYY-MM-DD`. DD/MM/YY <= CURDATE / NOW. | ✅ | ✅ Đã parse |
 | 28 | `Code sale` | Code sale | `saleId` | string | **TRIM**. Số điện thoại: 0 + 9-10 chữ số. Format: `^0\d{9,10}$` | ❌ NOT NULL | ✅ Đã map |
 | 29 | `Channel` | Channel | `programCodeMiningChannel` | string | **TRIM**. **BẮT BUỘC** phải nằm trong danh sách: `DSA`, `DSA/Renew`, `DSA_NEO`, `TSA`, `Renew`, `CTV_TSA (TSA 2)`, `CTV_TSA (TSA 2)/Renew`, `HO`, `Digital`, `Referral`. **Sai chính tả hoặc định dạng sẽ bị từ chối upload.** | ❌ NOT NULL | ✅ Đã validate |
-| 30 | `Hình thức thanh toán` | Hình thức thanh toán | `termsFeePaymentMethod` | string | **Enum:** Chọn từ bảng set up: Chuyển khoản nhà BH, Chuyển khoản Affina, Payco, OCB, POS, Renew, Payment, DSA. | ✅ | ✅ Đã map |
+| 30 | `Hình thức thanh toán` | Hình thức thanh toán | `termsFeePaymentMethod` | string | **Enum:** Chọn từ bảng set up: Chuyển khoản nhà BH, Chuyển khoản InsuStream, Payco, OCB, POS, Renew, Payment, DSA. | ✅ | ✅ Đã map |
 | 31 | `Note` | Ghi chú | `note` | string | **TRIM**. | ✅ | ✅ Đã map |
 
 ---

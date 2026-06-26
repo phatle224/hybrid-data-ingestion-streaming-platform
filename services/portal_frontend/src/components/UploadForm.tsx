@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { 
+  Database, 
+  UploadSimple, 
+  Lightbulb, 
+  ArrowsClockwise, 
+  CaretDown
+} from '@phosphor-icons/react'
 import { InsuranceType, UploadStatus, UploadResponse, ValidationRowError, RecordPreview } from '../types'
 import { uploadExcel } from '../services/api'
 import './UploadForm.css'
@@ -30,8 +37,8 @@ function RecordTable({ records, type, emptyMessage = 'No records' }: RecordTable
         <tbody>
           {records.map((rec, idx) => (
             <tr key={idx} className={type === 'valid' ? 'inserted' : type}>
-              <td className="row-number-cell"><strong>{rec.row || idx + 1}</strong></td>
-              <td><code>{rec.contractId || '(empty)'}</code></td>
+              <td className="row-number-cell mono"><strong>{rec.row || idx + 1}</strong></td>
+              <td><code className="mono">{rec.contractId || '(empty)'}</code></td>
               <td>{rec.peopleName || '(empty)'}</td>
               <td>{rec.majorName || '(empty)'}</td>
               <td>{rec.companyProviderName || '(empty)'}</td>
@@ -84,20 +91,18 @@ function InvalidRow({ error, isExpanded, onToggle }: InvalidRowProps) {
   return (
     <>
       <tr className={`invalid-row clickable ${isExpanded ? 'expanded' : ''}`} onClick={onToggle}>
-        <td className="row-number-cell"><strong>{error.excel_row}</strong></td>
-        <td><code>{renderValue('contractId', error.record_preview?.contractId)}</code></td>
+        <td className="row-number-cell mono"><strong>{error.excel_row}</strong></td>
+        <td><code className="mono">{renderValue('contractId', error.record_preview?.contractId)}</code></td>
         <td>{renderValue('peopleName', error.record_preview?.peopleName)}</td>
         <td>{renderValue('majorName', error.record_preview?.majorName)}</td>
         <td>{renderValue('companyProviderName', error.record_preview?.companyProviderName)}</td>
         <td className="error-cell">
           <div className="error-badge-wrapper">
-            <span className="error-count-badge">
+            <span className="error-count-badge mono">
               {error.error_count} {error.error_count > 1 ? 'errors' : 'error'}
             </span>
             <span className={`expand-caret ${isExpanded ? 'rotated' : ''}`}>
-              <svg width="12" height="8" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <CaretDown size={14} weight="bold" />
             </span>
           </div>
         </td>
@@ -118,7 +123,7 @@ function InvalidRow({ error, isExpanded, onToggle }: InvalidRowProps) {
                     <div className="field-error-message">{fieldErr.message}</div>
                     {fieldErr.current_value !== null && fieldErr.current_value !== undefined && (
                       <div className="field-error-value">
-                        Current value: <code>{formatCurrentValue(fieldErr.current_value)}</code>
+                        Current value: <code className="mono">{formatCurrentValue(fieldErr.current_value)}</code>
                       </div>
                     )}
                   </div>
@@ -200,7 +205,7 @@ function InvalidTable({ errors }: InvalidTableProps) {
         <button type="button" className="pager-btn" onClick={goPrev} disabled={currentPage === 1}>
           Previous
         </button>
-        <span className="pagination-info">
+        <span className="pagination-info mono">
           Page {currentPage}/{totalPages} • Showing {pageStart + 1}-{Math.min(pageStart + PAGE_SIZE, errors.length)} of {errors.length}
         </span>
         <button type="button" className="pager-btn" onClick={goNext} disabled={currentPage === totalPages}>
@@ -210,6 +215,7 @@ function InvalidTable({ errors }: InvalidTableProps) {
     </>
   )
 }
+
 
 const INSURANCE_OPTIONS = [
   { value: InsuranceType.TRAVEL, label: 'Travel Insurance (Du lịch)' },
@@ -354,13 +360,15 @@ function UploadForm() {
                 }`}
               >
                 <input {...getInputProps()} />
-                <div className="dropzone-icon"></div>
+                <div className="dropzone-icon">
+                  <UploadSimple size={28} />
+                </div>
                 <div className="dropzone-text">
                   {selectedFile ? (
                     <>
-                      <strong>{selectedFile.name}</strong>
+                      <strong className="mono">{selectedFile.name}</strong>
                       <br />
-                      <span className="file-size">
+                      <span className="file-size mono">
                         {(selectedFile.size / 1024).toFixed(1)} KB
                       </span>
                     </>
@@ -370,7 +378,7 @@ function UploadForm() {
                     <>
                       Click or drag to upload Excel file
                       <br />
-                      <span style={{fontSize: '11px', color: '#94a3b8'}}>Max 50MB per file</span>
+                      <span style={{fontSize: '11px', color: 'var(--text-muted)'}}>Max 50MB per file</span>
                     </>
                   )}
                 </div>
@@ -383,8 +391,8 @@ function UploadForm() {
               disabled={status === UploadStatus.UPLOADING}
             >
               {status === UploadStatus.UPLOADING ? (
-                <div className="loading">
-                  <div className="spinner"></div>
+                <div className="loading-btn-content">
+                  <ArrowsClockwise size={16} className="spin-icon" />
                   <span>Processing {progress}%</span>
                 </div>
               ) : (
@@ -402,15 +410,30 @@ function UploadForm() {
           
           {!result && status !== UploadStatus.UPLOADING && (
             <div className="empty-state">
-              <div className="empty-icon" style={{fontSize: '48px', marginBottom: '16px'}}>📊</div>
-              <p>Selection an insurance type and upload a file to start analysis</p>
+              <Database size={48} weight="thin" className="empty-icon" />
+              <p>Select an insurance type and upload a file to start analysis</p>
             </div>
           )}
 
           {status === UploadStatus.UPLOADING && (
-             <div className="empty-state">
-               <div className="spinner" style={{borderColor: '#e2e8f0', borderTopColor: '#6366f1', width: '40px', height: '40px', marginBottom: '20px'}}></div>
-               <p>Our algorithms are parsing and validating your data...</p>
+             <div className="skeletal-processing">
+               <div className="skeletal-metrics">
+                 <div className="skeletal-metric-card shimmer"></div>
+                 <div className="skeletal-metric-card shimmer"></div>
+                 <div className="skeletal-metric-card shimmer"></div>
+                 <div className="skeletal-metric-card shimmer"></div>
+                 <div className="skeletal-metric-card shimmer"></div>
+               </div>
+               <div className="skeletal-table">
+                 <div className="skeletal-row shimmer"></div>
+                 <div className="skeletal-row shimmer"></div>
+                 <div className="skeletal-row shimmer"></div>
+                 <div className="skeletal-row shimmer"></div>
+               </div>
+               <p className="processing-text">
+                 <ArrowsClockwise size={16} className="spin-icon" />
+                 Our algorithms are parsing and validating your data... ({progress}%)
+               </p>
              </div>
           )}
 
@@ -423,7 +446,7 @@ function UploadForm() {
               </div>
               
               {result.details && (
-                <pre className="result-details">{result.details}</pre>
+                <pre className="result-details mono">{result.details}</pre>
               )}
           
               {(result.type === 'success' || result.type === 'partial_success' || result.type === 'validation_error') && result.response && (
@@ -436,21 +459,21 @@ function UploadForm() {
                       onClick={() => setActiveTab('inserted')}
                     >
                       <span className="stat-label">Inserted</span>
-                      <span className="stat-value">{result.response.records_inserted || 0}</span>
+                      <span className="stat-value mono">{result.response.records_inserted || 0}</span>
                     </div>
                     <div 
                       className={`stat-card warning ${activeTab === 'duplicates' ? 'active' : ''}`}
                       onClick={() => setActiveTab('duplicates')}
                     >
                       <span className="stat-label">Duplicates</span>
-                      <span className="stat-value">{result.response.duplicates_found || 0}</span>
+                      <span className="stat-value mono">{result.response.duplicates_found || 0}</span>
                     </div>
                     <div 
                       className={`stat-card info ${activeTab === 'valid' ? 'active' : ''}`}
                       onClick={() => setActiveTab('valid')}
                     >
                       <span className="stat-label">Valid Records</span>
-                      <span className="stat-value">
+                      <span className="stat-value mono">
                         {result.response.error_details?.valid_rows ?? ((result.response.records_inserted || 0) + (result.response.duplicates_found || 0))}
                       </span>
                     </div>
@@ -459,11 +482,11 @@ function UploadForm() {
                       onClick={() => setActiveTab('invalid')}
                     >
                       <span className="stat-label">Invalid</span>
-                      <span className="stat-value">{result.response.error_details?.invalid_rows || result.response.invalid_rows || 0}</span>
+                      <span className="stat-value mono">{result.response.error_details?.invalid_rows || result.response.invalid_rows || 0}</span>
                     </div>
                     <div className="stat-card">
                       <span className="stat-label">Efficiency</span>
-                      <span className="stat-value">{result.response.error_details?.success_rate || '100%'}</span>
+                      <span className="stat-value mono">{result.response.error_details?.success_rate || '100%'}</span>
                     </div>
                   </div>
 
@@ -500,7 +523,8 @@ function UploadForm() {
 
                   {result.response.suggestion && (
                     <div className="suggestion">
-                      {result.response.suggestion}
+                      <Lightbulb size={18} weight="fill" className="suggestion-icon" />
+                      <span>{result.response.suggestion}</span>
                     </div>
                   )}
                 </div>

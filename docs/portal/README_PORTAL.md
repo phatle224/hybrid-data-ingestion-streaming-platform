@@ -81,10 +81,10 @@ services/
 
 Sửa `services/portal_backend/configs/database/db_config.py`:
 ```python
-MYSQL_HOST = "localhost"
-MYSQL_USER = "synthetic_db_user"
-MYSQL_PASSWORD = "your_password"
-MYSQL_DATABASE = "insuranceWarehouse"
+DB_HOST = "localhost"
+DB_USER = "postgres"
+DB_PASSWORD = "your_password"
+DB_NAME = "insuranceWarehouse"
 ```
 
 ### 2. Deploy với Docker
@@ -245,11 +245,11 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 
 **`services/portal_backend/configs/database/db_config.py`**
 ```python
-MYSQL_HOST = "localhost"
-MYSQL_PORT = 3306
-MYSQL_USER = "synthetic_db_user"
-MYSQL_PASSWORD = "***"
-MYSQL_DATABASE = "insuranceWarehouse"
+DB_HOST = "localhost"
+DB_PORT = 5432
+DB_USER = "postgres"
+DB_PASSWORD = "***"
+DB_NAME = "insuranceWarehouse"
 ```
 
 ---
@@ -304,5 +304,5 @@ taskkill /PID <PID> /F
 - [BUSINESS_LOGIC.md](./BUSINESS_LOGIC.md) - Business logic và architecture
 
 **Contact:**
-- Email: support@affina.com.vn
+- Email: support@insustream.com
 - Team: CDC Development Team
