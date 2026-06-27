@@ -1,2 +1,0 @@
-1. chỉnh sửa lại data mart của profiling, hiện tại data transform chưa đúng bản chất của nó
-2. chỉnh sửa lại dwh cho dm và fct, hiện tại chỉ có 1 wide fct table
