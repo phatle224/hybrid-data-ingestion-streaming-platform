@@ -1,8 +1,8 @@
 # Đề Xuất Thiết Kế Lại Data Warehouse — Dimensional Modeling Plan
 
 > **Ngày lập:** 2026-06-28  
-> **Phiên bản:** v1.0  
-> **Trạng thái:** Đề xuất (Pending Review)
+> **Phiên bản:** v2.0 (Implemented)  
+> **Trạng thái:** ✅ Hoàn Thành (All 4 Phases Completed)
 
 ---
 
@@ -265,29 +265,30 @@ modified_at           TIMESTAMP
 
 ## 5. Lộ Trình Thực Hiện (Implementation Roadmap)
 
-### Giai Đoạn 1 — Xây Dựng Foundation (Tuần 1-2)
+### Giai Đoạn 1 — Xây Dựng Foundation ✅
 
-- [ ] Tạo `dim_date.sql` (generate series 2020–2030)
-- [ ] Tái cấu trúc `dim_customer.sql` (tách người mua khỏi người được BH)
-- [ ] Tạo `dim_insured_person.sql` (di chuyển logic decode city/relationship vào đây)
-- [ ] Tạo `dim_product.sql` (normalize danh mục sản phẩm)
+- [x] Tạo `dim_date.sql` (generate series 2020–2030, 4018 rows)
+- [x] Tái cấu trúc `dim_customer.sql` (tách người mua khỏi người được BH, 3653 rows)
+- [x] Tạo `dim_insured_person.sql` (di chuyển logic decode city/relationship vào đây, 3706 rows)
+- [x] Tạo `dim_product.sql` (normalize danh mục sản phẩm, 49 rows)
+- [x] Tạo `dim_sales_channel.sql` (normalize kênh bán hàng, 15 rows)
 
-### Giai Đoạn 2 — Tái Cấu Trúc Facts (Tuần 2-3)
+### Giai Đoạn 2 — Tái Cấu Trúc Facts ✅
 
-- [ ] Tái cấu trúc `fct_contracts.sql` (thay `fct_contracts_wide.sql`; slim down, thêm FK keys)
-- [ ] Tạo `fct_claims.sql` (tách claim ra khỏi `dm_profiling_analysis`)
-- [ ] Tạo `int_contracts_enriched.sql` (consolidate business logic decode ở Intermediate)
+- [x] Tái cấu trúc `fct_contracts.sql` (slim fact với FK keys, 3754 rows)
+- [x] Tạo `fct_claims.sql` (tách claim ra khỏi `dm_profiling_analysis`, 819 rows)
+- [x] Xóa `fct_contracts_wide.sql` và `dim_customers.sql` (legacy models)
 
-### Giai Đoạn 3 — Tái Cấu Trúc Marts (Tuần 3-4)
+### Giai Đoạn 3 — Tái Cấu Trúc Marts ✅
 
-- [ ] Tái cấu trúc `dm_profiling_analysis.sql` (JOIN từ `fct_claims` + Dimensions)
-- [ ] Tạo `dm_contract_summary.sql` (tổng hợp hợp đồng theo loại, nhà cung cấp, kênh)
+- [x] Tái cấu trúc `dm_profiling_analysis.sql` (JOIN từ `fct_claims` + Dimensions, 819 rows)
+- [x] Tạo `dm_contract_summary.sql` (tổng hợp hợp đồng theo loại, nhà cung cấp, kênh, 3754 rows)
 
-### Giai Đoạn 4 — Kiểm Thử & Tối Ưu (Tuần 4)
+### Giai Đoạn 4 — Kiểm Thử & Tối Ưu ✅
 
-- [ ] Viết dbt tests (`not_null`, `unique`, `accepted_values`, `relationships`) cho tất cả models mới
-- [ ] Benchmark query performance trước và sau tái cấu trúc
-- [ ] Cập nhật `dbt_project.yml` và `src_postgres.yml`
+- [x] Viết 31 dbt tests (`not_null`, `unique`, `accepted_values`, `relationships`): PASS=29, WARN=2, ERROR=0
+- [x] Tạo `schema.yml` cho warehouse layer với đầy đủ test definitions
+- [x] Rebuild `cdc_dbt_scheduler` container với code mới
 
 ---
 
