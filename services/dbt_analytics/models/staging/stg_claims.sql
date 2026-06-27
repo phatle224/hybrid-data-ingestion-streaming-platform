@@ -11,6 +11,7 @@ cleaned AS (
         "compensationAmount" AS compensation_amount,
         COALESCE("note", 'No note') AS note,
         "claimType" AS claim_type,
+        "treatmentType" AS treatment_type,
         "hospitalizedDate" AS hospitalized_date,
         "hospitalDischargeDate" AS hospital_discharge_date,
         "placeOfTreatment" AS place_of_treatment,
@@ -31,6 +32,7 @@ cleaned AS (
         
         -- Resolve timestamp anomalies
         CASE 
+            WHEN "modifiedAt" IS NULL THEN "createdAt"
             WHEN "modifiedAt" < "createdAt" THEN "createdAt"
             ELSE "modifiedAt"
         END AS modified_at
