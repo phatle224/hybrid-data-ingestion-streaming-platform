@@ -21,6 +21,10 @@ cleaned AS (
         
         TRIM(LOWER("email")) AS people_email,
         "address" AS people_address,
+        NULL::integer AS people_relationship,
+        "cityCode"::text AS people_city_code,
+        "programId" AS program_id,
+        "programName" AS program_name,
         "majorName" AS major_name,
         "companyProviderName" AS company_provider_name,
         "startDate" AS start_date,
@@ -30,6 +34,7 @@ cleaned AS (
         
         -- Resolve timestamp anomalies
         CASE 
+            WHEN "modifiedAt" IS NULL THEN "createdAt"
             WHEN "modifiedAt" < "createdAt" THEN "createdAt"
             ELSE "modifiedAt"
         END AS modified_at

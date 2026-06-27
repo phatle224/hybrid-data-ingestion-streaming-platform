@@ -20,6 +20,7 @@ cleaned AS (
         TRIM(LOWER("email")) AS buyer_email,
         "address" AS buyer_address,
         "contractType" AS contract_type,
+        "customerType" AS customer_type,
         "companySaleName" AS company_sale_name,
         "branchSaleName" AS branch_sale_name,
         "contractStartDate" AS contract_start_date,
@@ -33,6 +34,7 @@ cleaned AS (
         
         -- Resolve timestamp anomalies
         CASE 
+            WHEN "modifiedAt" IS NULL THEN "createdAt"
             WHEN "modifiedAt" < "createdAt" THEN "createdAt"
             ELSE "modifiedAt"
         END AS modified_at

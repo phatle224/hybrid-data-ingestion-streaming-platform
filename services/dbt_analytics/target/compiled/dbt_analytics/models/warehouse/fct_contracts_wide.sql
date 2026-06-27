@@ -8,9 +8,6 @@ objects AS (
     SELECT * FROM "insuranceWarehouse"."intermediate"."int_contracts_deduped"
     
     
-        -- Only process contract objects that have been modified since the last dbt run
-        WHERE modified_at > (SELECT COALESCE(MAX(modified_at), '1970-01-01'::timestamp) FROM "insuranceWarehouse"."warehouse"."fct_contracts_wide")
-    
 ),
 
 joined AS (
@@ -28,6 +25,10 @@ joined AS (
         o.people_phone AS insured_phone,
         o.people_email AS insured_email,
         o.people_address AS insured_address,
+        o.people_relationship,
+        o.people_city_code,
+        o.program_id,
+        o.program_name,
         o.insurance_type,
         o.source_type,
         o.major_name,
@@ -35,6 +36,7 @@ joined AS (
         o.start_date AS contract_start_date,
         o.end_date AS contract_end_date,
         o.fee_insurance,
+        c.customer_type,
         c.amount AS contract_amount,
         c.commission AS contract_commission,
         c.amount_pay AS contract_amount_pay,

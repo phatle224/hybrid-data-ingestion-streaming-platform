@@ -13,9 +13,6 @@ WITH distinct_customers AS (
     WHERE people_name IS NOT NULL
     
     
-        -- Only process customer updates that occurred since the last run
-        AND modified_at > (SELECT COALESCE(MAX(modified_at), '1970-01-01'::timestamp) FROM "insuranceWarehouse"."warehouse"."dim_customers")
-    
     
     GROUP BY 1, 2, 3, 4, 5, 6
 )
