@@ -11,8 +11,9 @@ function App() {
             <Shield size={32} weight="duotone" className="logo-icon" />
           </div>
         </div>
+        <div className="version-tag mono">INGESTION COCKPIT v2.4</div>
         <h1>Insurance Portal</h1>
-        <p className="subtitle serif-italic">Upload Excel files for CDC processing</p>
+        <p className="subtitle">High-performance staging parser for CDC streaming pipelines.</p>
       </div>
       <div className="app-content">
         <UploadForm />
