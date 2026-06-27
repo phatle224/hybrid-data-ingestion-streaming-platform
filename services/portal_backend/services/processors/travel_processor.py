@@ -78,6 +78,30 @@ class TravelProcessor(IInsuranceProcessor):
             return datetime.fromisoformat(text.split('T')[0])
         except Exception:
             return None
+
+    @staticmethod
+    def _parse_journey_days(value: Any) -> Any:
+        """Parse journey days to positive integer (e.g. '10 ngày' -> 10)."""
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            parsed = int(float(value))
+            return parsed if parsed > 0 else None
+
+        text = str(value).strip().lower()
+        if not text or text in ["nan", "none", "-"]:
+            return None
+
+        match = re.search(r"\d+(?:[\.,]\d+)?", text)
+        if not match:
+            return None
+
+        number_text = match.group(0).replace(",", ".")
+        try:
+            parsed = int(float(number_text))
+            return parsed if parsed > 0 else None
+        except (ValueError, TypeError):
+            return None
     
     def pre_process(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -229,12 +253,11 @@ class TravelProcessor(IInsuranceProcessor):
             # journey_days only needs to be a positive integer
             days_value = raw.get('journey_days')
             if days_value is not None:
-                try:
-                    days_int = int(float(days_value))
-                    if days_int <= 0:
-                        add_error(row_number, 'journey_days', 'INVALID_VALUE', 'Số ngày phải > 0', days_value)
-                except (ValueError, TypeError):
+                days_int = self._parse_journey_days(days_value)
+                if days_int is None:
                     add_error(row_number, 'journey_days', 'INVALID_VALUE', 'Số ngày phải là số nguyên hợp lệ', days_value)
+                else:
+                    raw['journey_days'] = days_int
 
         final_valid_records = []
         final_errors = list(errors_by_row.values())
