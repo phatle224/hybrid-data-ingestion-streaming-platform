@@ -3,11 +3,29 @@ Contract data model
 """
 from typing import Optional, Dict, Any
 from datetime import datetime
+from decimal import Decimal
 
 
 class ContractRecord:
     """Contract record model - supports both fixed and dynamic fields"""
     
+    @staticmethod
+    def _to_clean_string(value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        import math
+        # Handle NaN
+        if isinstance(value, float) and (value != value or math.isnan(value)):
+            return None
+        if isinstance(value, str):
+            val_str = value.strip()
+            return val_str if val_str else None
+        if isinstance(value, float):
+            if value.is_integer():
+                return str(int(value))
+            return str(value)
+        return str(value).strip() or None
+
     def __init__(self, data: Dict[str, Any]):
         """
         Initialize contract record from dictionary
@@ -19,16 +37,16 @@ class ContractRecord:
         self._raw_data = data.copy()
         
         # Core required fields (4 business keys)
-        self.contract_id: Optional[str] = data.get("contractId")
-        self.payer_name: Optional[str] = data.get("payerName")
-        self.major_name: Optional[str] = data.get("majorName")
-        self.company_provider_name: Optional[str] = data.get("companyProviderName")
+        self.contract_id: Optional[str] = self._to_clean_string(data.get("contractId"))
+        self.payer_name: Optional[str] = self._to_clean_string(data.get("payerName"))
+        self.major_name: Optional[str] = self._to_clean_string(data.get("majorName"))
+        self.company_provider_name: Optional[str] = self._to_clean_string(data.get("companyProviderName"))
         
         # Legacy field (kept for backward compat, not used in business key)
-        self.name: Optional[str] = data.get("name")
+        self.name: Optional[str] = self._to_clean_string(data.get("name"))
         
         # Additional fields
-        self.people_name: Optional[str] = data.get("peopleName")
+        self.people_name: Optional[str] = self._to_clean_string(data.get("peopleName"))
         self.id_card: Optional[str] = data.get("idCard")
         self.gender: Optional[str] = data.get("gender")
         self.address: Optional[str] = data.get("address")
@@ -64,6 +82,13 @@ class ContractRecord:
         Convert model to dictionary for database insertion
         Returns ALL data including dynamic fields from Excel
         """
+        # Sync attributes from raw_data if modified by post-processors
+        self.contract_id = self._to_clean_string(self._raw_data.get("contractId") if "contractId" in self._raw_data else self.contract_id)
+        self.people_name = self._to_clean_string(self._raw_data.get("peopleName") if "peopleName" in self._raw_data else self.people_name)
+        self.payer_name = self._to_clean_string(self._raw_data.get("payerName") if "payerName" in self._raw_data else self.payer_name)
+        self.major_name = self._to_clean_string(self._raw_data.get("majorName") if "majorName" in self._raw_data else self.major_name)
+        self.company_provider_name = self._to_clean_string(self._raw_data.get("companyProviderName") if "companyProviderName" in self._raw_data else self.company_provider_name)
+
         # Start with raw data to preserve all fields
         # (including fields written by post_process, e.g. mirrored peopleName)
         result = self._raw_data.copy()
@@ -163,7 +188,7 @@ class ContractRecord:
         if val is None or val == "":
             return None  # Return None instead of empty string to match repository behavior
         try:
-            if isinstance(val, (int, float)):
+            if isinstance(val, (int, float, Decimal)):
                 num = float(val)
             else:
                 text = str(val).strip()
@@ -179,6 +204,13 @@ class ContractRecord:
 
     def get_business_keys(self) -> Dict[str, Any]:
         """Get business key fields for duplicate checking (7 keys)."""
+        # Sync attributes from raw_data if modified by post-processors
+        self.contract_id = self._to_clean_string(self._raw_data.get("contractId") if "contractId" in self._raw_data else self.contract_id)
+        self.people_name = self._to_clean_string(self._raw_data.get("peopleName") if "peopleName" in self._raw_data else self.people_name)
+        self.payer_name = self._to_clean_string(self._raw_data.get("payerName") if "payerName" in self._raw_data else self.payer_name)
+        self.major_name = self._to_clean_string(self._raw_data.get("majorName") if "majorName" in self._raw_data else self.major_name)
+        self.company_provider_name = self._to_clean_string(self._raw_data.get("companyProviderName") if "companyProviderName" in self._raw_data else self.company_provider_name)
+
         return {
             "contractId": self.contract_id,
             "peopleName": self.people_name,

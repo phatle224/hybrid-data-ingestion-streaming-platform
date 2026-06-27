@@ -207,6 +207,40 @@ class VehicleProcessor(IInsuranceProcessor):
             return None
 
     @staticmethod
+    def _parse_insurance_days(value: Any) -> Any:
+        """Parse insurance days to positive integer (e.g. '1 năm' -> 365, '30 ngày' -> 30, '6 tháng' -> 180)."""
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            parsed = int(float(value))
+            return parsed if parsed > 0 else None
+
+        text = str(value).strip().lower()
+        if not text or text in ["nan", "none", "-"]:
+            return None
+
+        # Extract number and unit
+        match = re.search(r"(\d+(?:[\.,]\d+)?)\s*(năm|tháng|ngày|n|t|g)?", text)
+        if not match:
+            return None
+
+        number_text = match.group(1).replace(",", ".")
+        unit = match.group(2)
+        
+        try:
+            val = float(number_text)
+            if unit:
+                if unit.startswith("n"):  # năm
+                    val *= 365
+                elif unit.startswith("t"):  # tháng
+                    val *= 30
+                # day / ngày is default
+            parsed = int(round(val))
+            return parsed if parsed > 0 else None
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
     def _build_amount_too_small_message(label: str, parsed_amount: float) -> str:
         base_message = f"{label} phải lớn hơn hoặc bằng 1.000"
         if parsed_amount is not None and 0 < parsed_amount < 1000:
@@ -365,6 +399,67 @@ class VehicleProcessor(IInsuranceProcessor):
                     )
                 else:
                     raw["contractPeriodValue"] = period_int
+
+            days_value = raw.get("insurance_days")
+            if days_value is not None:
+                days_int = self._parse_insurance_days(days_value)
+                if days_int is None:
+                    add_error(
+                        row_number,
+                        "insurance_days",
+                        "INVALID_VALUE",
+                        "Số ngày bảo hiểm phải là số nguyên dương hợp lệ (ví dụ: 365, 1 năm, 30 ngày)",
+                        days_value,
+                    )
+                else:
+                    raw["insurance_days"] = days_int
+
+            seat_value = raw.get("seatNumber")
+            if seat_value is not None:
+                try:
+                    seat_int = int(float(seat_value))
+                    if seat_int <= 0:
+                        add_error(
+                            row_number,
+                            "seatNumber",
+                            "INVALID_VALUE",
+                            "Số chỗ ngồi phải lớn hơn 0",
+                            seat_value,
+                        )
+                    else:
+                        raw["seatNumber"] = seat_int
+                except (ValueError, TypeError):
+                    add_error(
+                        row_number,
+                        "seatNumber",
+                        "INVALID_VALUE",
+                        "Số chỗ ngồi phải là số nguyên hợp lệ",
+                        seat_value,
+                    )
+
+            year_value = raw.get("manufactureYear")
+            if year_value is not None:
+                try:
+                    year_int = int(float(year_value))
+                    current_year = datetime.now().year
+                    if year_int < 1900 or year_int > current_year + 1:
+                        add_error(
+                            row_number,
+                            "manufactureYear",
+                            "INVALID_VALUE",
+                            f"Năm sản xuất phải từ 1900 đến {current_year + 1}",
+                            year_value,
+                        )
+                    else:
+                        raw["manufactureYear"] = year_int
+                except (ValueError, TypeError):
+                    add_error(
+                        row_number,
+                        "manufactureYear",
+                        "INVALID_VALUE",
+                        "Năm sản xuất phải là số nguyên hợp lệ",
+                        year_value,
+                    )
 
             payment_raw = raw.get("payment_date")
             payment_dt = self._parse_vi_date(payment_raw)

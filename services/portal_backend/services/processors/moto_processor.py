@@ -108,6 +108,31 @@ class MotoProcessor(IInsuranceProcessor):
             return None
         # Keep alphanumeric only.
         return ''.join(ch for ch in text if ch.isalnum())
+
+    @staticmethod
+    def _parse_contract_period_value(value: Any) -> Any:
+        """Parse contract period to positive integer (e.g. '1 năm' -> 1, '1' -> 1)."""
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            parsed = int(float(value))
+            return parsed if parsed > 0 else None
+
+        text = str(value).strip().lower()
+        if not text or text in ["nan", "none", "-"]:
+            return None
+
+        # Extract first numeric token from text formats like: "1 năm", "12 tháng", "365 ngày".
+        match = re.search(r"\d+(?:[\.,]\d+)?", text)
+        if not match:
+            return None
+
+        number_text = match.group(0).replace(",", ".")
+        try:
+            parsed = int(float(number_text))
+            return parsed if parsed > 0 else None
+        except (ValueError, TypeError):
+            return None
     
     def pre_process(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -321,14 +346,11 @@ class MotoProcessor(IInsuranceProcessor):
             # Contract period value must be positive if present
             period_value = raw.get('contractPeriodValue')
             if period_value is not None:
-                try:
-                    period_int = int(float(period_value))
-                    if period_int <= 0:
-                        add_error(row_number, 'contractPeriodValue', 'INVALID_VALUE', 'Số năm bảo hiểm phải > 0', period_value)
-                    else:
-                        raw['contractPeriodValue'] = period_int
-                except (ValueError, TypeError):
-                    add_error(row_number, 'contractPeriodValue', 'INVALID_VALUE', 'Số năm bảo hiểm phải là số nguyên hợp lệ', period_value)
+                period_int = self._parse_contract_period_value(period_value)
+                if period_int is None:
+                    add_error(row_number, 'contractPeriodValue', 'INVALID_VALUE', 'Số năm bảo hiểm phải là số nguyên dương hợp lệ', period_value)
+                else:
+                    raw['contractPeriodValue'] = period_int
 
         final_valid_records = []
         final_errors = list(errors_by_row.values())

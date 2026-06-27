@@ -3,6 +3,7 @@ Contract repository - handles database operations
 """
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date
+from decimal import Decimal
 from models.contract_model import ContractRecord
 from configs.database.db_config import DatabaseConfig, DatabaseConnection
 from configs.app.settings import app_settings
@@ -19,7 +20,7 @@ class ContractRepository:
         if value is None or value == "":
             return None
         try:
-            if isinstance(value, (int, float)):
+            if isinstance(value, (int, float, Decimal)):
                 num = float(value)
             else:
                 text = str(value).strip()
@@ -108,18 +109,23 @@ class ContractRepository:
             params = []
             
             for contract_id, people_name, major_name, company_provider in keys_to_check:
-                conditions.append("(contractId = %s AND peopleName = %s AND majorName = %s AND companyProviderName = %s)")
-                params.extend([contract_id, people_name, major_name, company_provider])
+                conditions.append('("contractId" = %s AND "peopleName" = %s AND "majorName" = %s AND "companyProviderName" = %s)')
+                params.extend([
+                    str(contract_id) if contract_id is not None else None,
+                    str(people_name) if people_name is not None else None,
+                    str(major_name) if major_name is not None else None,
+                    str(company_provider) if company_provider is not None else None
+                ])
             
             where_clause = " OR ".join(conditions)
             
             query = f"""
                 SELECT 
-                    contractId, peopleName, majorName, companyProviderName,
-                    feeInsurance,
-                    contractObjectStartDate, contractObjectEndDate,
-                    startDateJourney, endDateJourney,
-                    contractStartDate, contractEndDate
+                    "contractId", "peopleName", "majorName", "companyProviderName",
+                    "feeInsurance",
+                    "contractObjectStartDate", "contractObjectEndDate",
+                    "startDateJourney", "endDateJourney",
+                    "contractStartDate", "contractEndDate"
                 FROM "{self.table_name}"
                 WHERE {where_clause}
             """
@@ -183,15 +189,15 @@ class ContractRepository:
             # Check using peopleName as business key
             query = f"""
                 SELECT 
-                    feeInsurance,
-                    contractObjectStartDate, contractObjectEndDate,
-                    startDateJourney, endDateJourney,
-                    contractStartDate, contractEndDate
+                    "feeInsurance",
+                    "contractObjectStartDate", "contractObjectEndDate",
+                    "startDateJourney", "endDateJourney",
+                    "contractStartDate", "contractEndDate"
                 FROM "{self.table_name}"
-                WHERE contractId = %s 
-                AND peopleName = %s
-                AND majorName = %s 
-                AND companyProviderName = %s
+                WHERE "contractId" = %s 
+                AND "peopleName" = %s
+                AND "majorName" = %s 
+                AND "companyProviderName" = %s
             """
             
             db.execute(query, (
