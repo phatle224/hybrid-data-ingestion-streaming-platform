@@ -219,9 +219,9 @@ class TravelProcessor(IInsuranceProcessor):
             if pay_dt and pay_dt > now_dt:
                 add_error(row_number, 'payment_date', 'INVALID_DATE', 'Ngày thanh toán không được lớn hơn ngày hiện tại', raw.get('payment_date'))
 
-            # Shared date-order rule
-            if start_dt and pay_dt and start_dt < pay_dt:
-                add_error(row_number, 'startDateJourney', 'INVALID_DATE', 'Ngày đi phải >= Ngày thanh toán', raw.get('startDateJourney'))
+            # Shared date-order rule (relaxed for historical offline imports where records can be logged post-journey)
+            # if start_dt and pay_dt and start_dt < pay_dt:
+            #     add_error(row_number, 'startDateJourney', 'INVALID_DATE', 'Ngày đi phải >= Ngày thanh toán', raw.get('startDateJourney'))
 
             if start_dt and end_dt and end_dt <= start_dt:
                 add_error(row_number, 'endDateJourney', 'INVALID_DATE', 'Ngày về phải > Ngày đi', raw.get('endDateJourney'))

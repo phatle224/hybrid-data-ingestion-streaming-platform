@@ -23,7 +23,7 @@ class MotoMapping(BaseInsuranceMapping):
         """Override common mapping for Moto-specific Vietnamese headers"""
         return {
             'Ngày update': 'modifiedAt',
-            'Sản phẩm': 'programName',
+            'Sản phẩm': 'majorName',
             'Số hợp đồng': 'contractId',
             'Đối tác nhà bảo hiểm': 'companyProviderName',
             'Code sale': 'saleId',
@@ -46,6 +46,7 @@ class MotoMapping(BaseInsuranceMapping):
             # Owner/Buyer Info → payer* fields
             'TÊN KHÁCH HÀNG': 'payerName',
             'SỐ ĐIỆN THOẠI': 'payerPhone',
+            'SỐ ĐIẸN THOẠI': 'payerPhone',
             'Email': 'payerEmail',
             
             # Fee Info

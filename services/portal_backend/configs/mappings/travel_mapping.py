@@ -51,7 +51,7 @@ class TravelMapping(BaseInsuranceMapping):
             
             # Program Info
             'Gói tham gia': 'packageName',
-            'Plan tham gia': 'programName',
+            'Plan tham gia': 'packageName',
             
             # Payer Info (người mua BH)
             'Họ tên người mua': 'payerName',

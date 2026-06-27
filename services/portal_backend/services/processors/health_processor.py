@@ -205,7 +205,10 @@ class HealthProcessor(IInsuranceProcessor):
                 if not raw.get('peopleName') and raw.get('payerName'):
                     raw['peopleName'] = raw['payerName']
                     record.people_name = raw['peopleName']
-                    if raw.get('peopleRelationship') is None:
+                    if raw.get('peopleRelationship') is None or (isinstance(raw.get('peopleRelationship'), float) and pd.isna(raw.get('peopleRelationship'))):
+                        raw['peopleRelationship'] = 'Bản thân'
+                elif raw.get('peopleName') and raw.get('payerName') and str(raw.get('peopleName')).strip().lower() == str(raw.get('payerName')).strip().lower():
+                    if raw.get('peopleRelationship') is None or (isinstance(raw.get('peopleRelationship'), float) and pd.isna(raw.get('peopleRelationship'))):
                         raw['peopleRelationship'] = 'Bản thân'
 
                 if not raw.get('peopleDob') and raw.get('payerDob'):

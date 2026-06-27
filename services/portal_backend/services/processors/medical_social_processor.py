@@ -284,18 +284,16 @@ class MedicalSocialProcessor(IInsuranceProcessor):
 
     def _resolve_insurance_type(self, raw_data: Dict[str, Any]) -> str:
         """
-        Resolve 'MEDICAL_SOCIAL' → 'MEDICAL' or 'SOCIAL' by checking majorName.
-        majorName (mapped from 'Sản phẩm') contains product names such as:
-          'BHYTHGD 12 THÁNG'  → MEDICAL
-          'BHXH TỰ NGUYỆN'    → SOCIAL
-        Falls back to 'MEDICAL_SOCIAL' if no keyword matches.
+        Resolve 'MEDICAL_SOCIAL' → 'MEDICAL' or 'SOCIAL' by checking majorName or programName.
         """
         major_name = str(raw_data.get('majorName') or '').lower().strip()
+        program_name = str(raw_data.get('programName') or '').lower().strip()
+        combined = f"{major_name} {program_name}"
         for ins_type, keywords in self._MEDICAL_SOCIAL_KEYWORDS.items():
             for kw in keywords:
-                if kw in major_name:
+                if kw in combined:
                     return ins_type
-        print(f"WARNING: Cannot resolve MEDICAL_SOCIAL sub-type from majorName='{raw_data.get('majorName')}', keeping MEDICAL_SOCIAL")
+        print(f"WARNING: Cannot resolve MEDICAL_SOCIAL sub-type from majorName='{raw_data.get('majorName')}' and programName='{raw_data.get('programName')}', keeping MEDICAL_SOCIAL")
         return 'MEDICAL_SOCIAL'
 
     @staticmethod
@@ -327,10 +325,16 @@ class MedicalSocialProcessor(IInsuranceProcessor):
             return None
         try:
             if isinstance(value, (int, float)):
-                return float(value)
+                val_float = float(value)
+                if 0 < val_float < 1000:
+                    val_float *= 1000
+                return val_float
             text = str(value).strip()
             text = text.replace('.', '').replace(',', '.')
-            return float(text)
+            val_float = float(text)
+            if 0 < val_float < 1000:
+                val_float *= 1000
+            return val_float
         except (ValueError, TypeError):
             return None
 

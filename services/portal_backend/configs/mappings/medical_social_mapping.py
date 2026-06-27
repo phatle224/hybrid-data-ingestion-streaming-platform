@@ -25,6 +25,7 @@ class MedicalSocialMapping(BaseInsuranceMapping):
         return {
             'Ngày update': 'modifiedAt',
             'Sản phẩm': 'programName',
+            'Loại sản phẩm': 'majorName',
             'Mã tờ khai': 'contractId',  # Mã tờ khai = Mã hợp đồng
             'Đối tác NBH': 'companyProviderName',
             'Code sales': 'saleId',
@@ -82,7 +83,7 @@ class MedicalSocialMapping(BaseInsuranceMapping):
         return [
             'contractId',
             'peopleName',
-            'programName',
+            'majorName',
             'companyProviderName',
             'peopleDob',
             'peopleGender',

@@ -120,7 +120,7 @@ class ContractRepository:
                     contractObjectStartDate, contractObjectEndDate,
                     startDateJourney, endDateJourney,
                     contractStartDate, contractEndDate
-                FROM {self.table_name}
+                FROM "{self.table_name}"
                 WHERE {where_clause}
             """
             
@@ -187,7 +187,7 @@ class ContractRepository:
                     contractObjectStartDate, contractObjectEndDate,
                     startDateJourney, endDateJourney,
                     contractStartDate, contractEndDate
-                FROM {self.table_name}
+                FROM "{self.table_name}"
                 WHERE contractId = %s 
                 AND peopleName = %s
                 AND majorName = %s 
@@ -269,7 +269,7 @@ class ContractRepository:
         
         with DatabaseConnection(self.db_config) as db:
             query = f"""
-                INSERT INTO {self.table_name} ({columns})
+                INSERT INTO "{self.table_name}" ({columns})
                 VALUES ({placeholders})
             """
             db.execute(query, values)
@@ -318,7 +318,7 @@ class ContractRepository:
                     values = tuple(filtered_data.values())
                     
                     query = f"""
-                        INSERT INTO {self.table_name} ({columns})
+                        INSERT INTO "{self.table_name}" ({columns})
                         VALUES ({placeholders})
                     """
                     db.execute(query, values)
@@ -344,7 +344,7 @@ class ContractRepository:
             List of record dictionaries
         """
         with DatabaseConnection(self.db_config) as db:
-            query = f"SELECT * FROM {self.table_name}"
+            query = f'SELECT * FROM "{self.table_name}"'
             if limit:
                 query += f" LIMIT {limit}"
             
@@ -359,11 +359,11 @@ class ContractRepository:
             Number of deleted records
         """
         with DatabaseConnection(self.db_config) as db:
-            db.execute(f"SELECT COUNT(*) as count FROM {self.table_name}")
+            db.execute(f'SELECT COUNT(*) as count FROM "{self.table_name}"')
             result = db.fetchone()
             count = result["count"] if result else 0
             
-            db.execute(f"DELETE FROM {self.table_name}")
+            db.execute(f'DELETE FROM "{self.table_name}"')
             db.commit()
             
             return count

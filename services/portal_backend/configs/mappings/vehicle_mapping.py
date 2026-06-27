@@ -23,7 +23,7 @@ class VehicleMapping(BaseInsuranceMapping):
         """Override common mapping for Vehicle-specific Vietnamese headers"""
         return {
             ' ': 'modifiedAt',  # First column (blank header)
-            'Sản phẩm': 'programName',
+            'Sản phẩm': 'majorName',
             'Sản Phẩm': 'productName_2',  # Note: có 2 columns
             'Số GCN': 'contractId',
             'Đối tác nhà bảo hiểm': 'companyProviderName',

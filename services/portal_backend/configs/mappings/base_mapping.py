@@ -20,6 +20,7 @@ class BaseInsuranceMapping(ABC):
         'DSA',
         'DSA/Renew',
         'DSA_NEO',
+        'DSA_NEO/Renew',
         'TSA',
         'Renew',
         'CTV_TSA (TSA 2)',

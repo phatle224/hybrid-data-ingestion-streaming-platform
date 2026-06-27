@@ -25,7 +25,7 @@ class HealthMapping(BaseInsuranceMapping):
         return {
             'Ngày cập nhật': 'modifiedAt',
             'STT': 'row_number',
-            'Sản phẩm': 'programName',
+            'Sản phẩm': 'majorName',
             'Số hợp đồng': 'contractId',
             'Nhà bảo hiểm': 'companyProviderName',
             'Code sale': 'saleId',

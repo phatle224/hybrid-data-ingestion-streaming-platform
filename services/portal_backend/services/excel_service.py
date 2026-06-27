@@ -104,10 +104,13 @@ class ExcelService:
         """
         filename_upper = filename.upper()
         
-        # Check each mapping class for keywords
-        for insurance_type, mapping_class in ProcessorFactory._mappings.items():
+        # Check each mapping class for keywords with ordering to avoid conflicts (MOTO contains OTO)
+        order = ['MOTO', 'TRAVEL', 'VEHICLE', 'MEDICAL_SOCIAL', 'HEALTH']
+        for insurance_type in order:
+            mapping_class = ProcessorFactory._mappings.get(insurance_type)
+            if not mapping_class:
+                continue
             keywords = mapping_class.get_file_keywords()
-            
             for keyword in keywords:
                 if keyword.upper() in filename_upper:
                     return insurance_type

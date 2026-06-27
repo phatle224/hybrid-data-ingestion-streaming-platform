@@ -149,8 +149,16 @@ class MotoProcessor(IInsuranceProcessor):
                 raw['chassisNumber'] = self._clean_engine_or_chassis(raw.get('chassisNumber'))
                 raw['engineNumber'] = self._clean_engine_or_chassis(raw.get('engineNumber'))
                 raw['issue_date'] = self._format_db_date(raw.get('issue_date'))
-                raw['contractObjectStartDate'] = self._format_db_date(raw.get('contractObjectStartDate'))
-                raw['contractObjectEndDate'] = self._format_db_date(raw.get('contractObjectEndDate'))
+                start_raw = raw.get('contractObjectStartDate')
+                end_raw = raw.get('contractObjectEndDate')
+                s_dt = self._parse_vi_date(start_raw)
+                e_dt = self._parse_vi_date(end_raw)
+                if s_dt and e_dt and s_dt > e_dt:
+                    raw['contractObjectStartDate'] = self._format_db_date(end_raw)
+                    raw['contractObjectEndDate'] = self._format_db_date(start_raw)
+                else:
+                    raw['contractObjectStartDate'] = self._format_db_date(start_raw)
+                    raw['contractObjectEndDate'] = self._format_db_date(end_raw)
 
                 # Single-person type: buyer = beneficiary = self
                 if raw.get('peopleRelationship') is None:
@@ -246,7 +254,7 @@ class MotoProcessor(IInsuranceProcessor):
             if fee_main is not None:
                 try:
                     fee_main_val = parse_amount(fee_main)
-                    if fee_main_val is not None and fee_main_val < min_amount_threshold:
+                    if fee_main_val is not None and 0 < fee_main_val < min_amount_threshold:
                         add_error(
                             row_number,
                             'feeMainBenefit',
@@ -264,7 +272,7 @@ class MotoProcessor(IInsuranceProcessor):
             if fee_side is not None:
                 try:
                     fee_side_val = parse_amount(fee_side)
-                    if fee_side_val is not None and fee_side_val < min_amount_threshold:
+                    if fee_side_val is not None and 0 < fee_side_val < min_amount_threshold:
                         add_error(
                             row_number,
                             'feeSideBenefit',
