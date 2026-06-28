@@ -74,14 +74,21 @@ flowchart TB
     end
 
     subgraph "Luồng Biến Đổi & DWH (dbt ELT)"
-        SCHEDULER["dbt Scheduler Daemon<br/>(Every 5 minutes)"]
-        DBT_ANALYTICS["dbt Analytics Project<br/>(Models & Marts)"]
+        SCHEDULER["dbt Scheduler Daemon /<br/>Airflow Operator"]
+        DBT_ANALYTICS["dbt Analytics Project<br/>(Models, Tests & Marts)"]
     end
 
     subgraph "Kho Dữ Liệu Báo Cáo (Reporting Layer)"
         RPT_DB[("Reporting DB<br/>(reporting schema)")]
         WIDE_TAB["Dimensions & Facts<br/>(dim_*, fct_*)"]
         MARTS["Data Marts<br/>(dm_*)"]
+    end
+
+    subgraph "Giám Sát & Đo Lường (Observability)"
+        PROM["Prometheus Server<br/>Port: 9090"]
+        GRAF["Grafana Dashboards<br/>Port: 3030"]
+        K_EXP["Kafka Exporter<br/>Port: 9308"]
+        P_EXP["PostgreSQL Exporter<br/>Port: 9187"]
     end
 
     %% Kênh Online
@@ -98,10 +105,18 @@ flowchart TB
 
     %% dbt ELT
     STG_DB --> DBT_ANALYTICS
-    SCHEDULER -->|Run dbt models| DBT_ANALYTICS
+    SCHEDULER -->|Run models & tests| DBT_ANALYTICS
     DBT_ANALYTICS --> WIDE_TAB
     WIDE_TAB --> MARTS
     MARTS --> RPT_DB
+
+    %% Kết nối giám sát
+    KF_SRC -.->|Đo lượng lag| K_EXP
+    K_EXP -->|Gửi metrics| PROM
+    STG_DB -.->|Đo kết nối & size| P_EXP
+    RPT_DB -.->|Đo kết nối & size| P_EXP
+    P_EXP -->|Gửi metrics| PROM
+    PROM -->|Truy vấn metrics| GRAF
 ```
 
 ---

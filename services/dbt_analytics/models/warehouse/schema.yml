@@ -5,10 +5,10 @@ models:
   # WAREHOUSE — Dimensions
   # ============================================================================
   - name: dim_date
-    description: "Dimension thời gian — tĩnh, generate series từ 2020 đến 2030"
+    description: "Date dimension — static, generating calendar series from 2020 to 2030."
     columns:
       - name: date_key
-        description: "Surrogate key (YYYYMMDD)"
+        description: "Surrogate date key in YYYYMMDD format."
         tests:
           - unique
           - not_null
@@ -18,10 +18,10 @@ models:
           - not_null
 
   - name: dim_customer
-    description: "Dimension khách hàng (người mua bảo hiểm / buyer)"
+    description: "Customer dimension containing demographics of the insurance buyer."
     columns:
       - name: customer_key
-        description: "Surrogate key MD5(name, dob, phone)"
+        description: "Surrogate customer key computed as MD5(name, dob, phone)."
         tests:
           - unique
           - not_null
@@ -34,10 +34,10 @@ models:
               values: ['0-17', '18-35', '36-55', '56+', 'Unknown']
 
   - name: dim_insured_person
-    description: "Dimension người được bảo hiểm — chứa logic decode city, relationship, age_group"
+    description: "Insured person dimension — decodes city name, relationship, and age group details."
     columns:
       - name: insured_person_key
-        description: "Surrogate key MD5(name, dob, phone)"
+        description: "Surrogate insured key computed as MD5(name, dob, phone)."
         tests:
           - unique
           - not_null
@@ -50,10 +50,10 @@ models:
               values: ['0-6', '7-17', '18-35', '36-55', '56+', 'Unknown']
 
   - name: dim_product
-    description: "Dimension sản phẩm bảo hiểm — insurance type, program, provider"
+    description: "Product dimension containing details about insurance type, program, and provider."
     columns:
       - name: product_key
-        description: "Surrogate key MD5(type, major, program, provider)"
+        description: "Surrogate product key computed as MD5(type, major, program, provider)."
         tests:
           - unique
           - not_null
@@ -62,10 +62,10 @@ models:
           - not_null
 
   - name: dim_sales_channel
-    description: "Dimension kênh bán hàng — company sale name, branch"
+    description: "Sales channel dimension — maps company sale names and branches."
     columns:
       - name: channel_key
-        description: "Surrogate key MD5(company, branch)"
+        description: "Surrogate sales channel key computed as MD5(company, branch)."
         tests:
           - unique
           - not_null
@@ -74,10 +74,10 @@ models:
   # WAREHOUSE — Facts
   # ============================================================================
   - name: fct_contracts
-    description: "Fact hợp đồng bảo hiểm — grain: 1 contract object"
+    description: "Insurance contracts fact table — grain: 1 contract object."
     columns:
       - name: contract_object_id
-        description: "Natural key"
+        description: "Natural key of the contract object."
         tests:
           - unique
           - not_null
@@ -100,17 +100,17 @@ models:
               field: product_key
               severity: warn
       - name: fee_insurance
-        description: "Phí bảo hiểm (VND)"
+        description: "Insurance premium fee (VND)."
       - name: source_type
         tests:
           - accepted_values:
               values: ['online', 'offline']
 
   - name: fct_claims
-    description: "Fact bồi thường bảo hiểm — grain: 1 claim"
+    description: "Insurance claims fact table — grain: 1 claim record."
     columns:
       - name: claim_id
-        description: "Natural key"
+        description: "Natural key of the claim."
         tests:
           - unique
           - not_null
@@ -122,17 +122,17 @@ models:
               field: contract_object_id
               severity: warn
       - name: amount_claim
-        description: "Số tiền yêu cầu bồi thường"
+        description: "Claimed compensation amount requested by the client."
       - name: compensation_amount
-        description: "Số tiền được bồi thường"
+        description: "Approved compensation amount paid out."
       - name: compensation_rate
-        description: "Tỉ lệ bồi thường (%)"
+        description: "Ratio of approved compensation to claimed amount (%)."
 
   # ============================================================================
   # MART — Data Marts
   # ============================================================================
   - name: dm_profiling_analysis
-    description: "Data Mart phân tích hồ sơ bồi thường — JOIN fct_claims + Dimensions"
+    description: "Data Mart for profiling claims analysis — joins fct_claims with Dimensions."
     columns:
       - name: claim_id
         tests:
@@ -140,7 +140,7 @@ models:
           - not_null
 
   - name: dm_contract_summary
-    description: "Data Mart tổng hợp hợp đồng — phân tích theo sản phẩm, kênh, khu vực"
+    description: "Data Mart summarizing contract data by product, channel, and geographic region."
     columns:
       - name: contract_object_id
         tests:

@@ -74,14 +74,21 @@ flowchart TB
     end
 
     subgraph "dbt ELT Transformation"
-        SCHEDULER["dbt Scheduler Daemon<br/>(Every 5 minutes)"]
-        DBT_ANALYTICS["dbt Analytics Project<br/>(Models & Marts)"]
+        SCHEDULER["dbt Scheduler Daemon /<br/>Airflow Operator"]
+        DBT_ANALYTICS["dbt Analytics Project<br/>(Models, Tests & Marts)"]
     end
 
     subgraph "Reporting Layer"
         RPT_DB[("Reporting DB<br/>(reporting schema)")]
         WIDE_TAB["Dimensions & Facts<br/>(dim_*, fct_*)"]
         MARTS["Data Marts<br/>(dm_*)"]
+    end
+
+    subgraph "Observability Stack"
+        PROM["Prometheus Server<br/>Port: 9090"]
+        GRAF["Grafana Dashboards<br/>Port: 3030"]
+        K_EXP["Kafka Exporter<br/>Port: 9308"]
+        P_EXP["PostgreSQL Exporter<br/>Port: 9187"]
     end
 
     %% Online Channel
@@ -98,10 +105,18 @@ flowchart TB
 
     %% dbt ELT
     STG_DB --> DBT_ANALYTICS
-    SCHEDULER -->|Run dbt models| DBT_ANALYTICS
+    SCHEDULER -->|Run models & tests| DBT_ANALYTICS
     DBT_ANALYTICS --> WIDE_TAB
     WIDE_TAB --> MARTS
     MARTS --> RPT_DB
+
+    %% Observability Connections
+    KF_SRC -.->|Track offsets| K_EXP
+    K_EXP -->|Metrics| PROM
+    STG_DB -.->|Track connections & size| P_EXP
+    RPT_DB -.->|Track connections & size| P_EXP
+    P_EXP -->|Metrics| PROM
+    PROM -->|Query metrics| GRAF
 ```
 
 ---

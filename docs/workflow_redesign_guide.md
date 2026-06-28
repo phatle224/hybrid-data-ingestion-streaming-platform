@@ -142,15 +142,52 @@ To make your diagram highly informative, replace short labels with the structure
 
 ---
 
+### Zone 5: Observability & Monitoring (New Stack)
+*Outer Frame: Light purple dashed border, faint purple background. Positioned below or parallel to Kafka/PostgreSQL.*
+
+1. **Prometheus Icon**:
+    - **Title**: `Prometheus Server`
+    - **Details**: `Scrape Interval: 15s (Port 9090)`
+    - **Role**: Periodically scrapes metrics from exporters.
+2. **Grafana Icon**:
+    - **Title**: `Grafana Dashboards`
+    - **Details**: `Overview Dashboard (Port 3030)`
+    - **Role**: Automatically visualizes real-time metrics (Lag, Connection Pool, DB Size).
+3. **Kafka Exporter Icon**:
+    - **Title**: `Kafka Exporter`
+    - **Details**: `Port 9308`
+    - **Role**: Pulls consumer offsets and lag from Kafka topics.
+4. **PostgreSQL Exporter Icon**:
+    - **Title**: `PostgreSQL Exporter`
+    - **Details**: `Port 9187`
+    - **Role**: Gathers database connection states and table metrics.
+
+---
+
+### Production Orchestration Alternative (Airflow)
+*Note block: Can be represented as a dashed container next to the dbt Scheduler.*
+
+1. **Apache Airflow Icon**:
+    - **Title**: `Target Orchestrator`
+    - **Details**: `Airflow DAG (dbt_etl_pipeline)`
+    - **Role**: Showcases how to migrate from the custom python scheduler daemon to an enterprise-grade orchestrator with retries, alerts, and SLAs.
+
+---
+
 ## 4. Recommended Layout Grid
 
-To maintain a logical layout, design a **Left-to-Right Flow** combined with top-down source segregation:
+To maintain a logical layout, design a **Left-to-Right Flow** combined with top-down source segregation, adding monitoring parallel to infrastructure:
 
 ```
 [ ONLINE CDC CHANNEL ] ────────► [ ONLINE STAGING TABLES ] ───┐
                                                               ├─► [ UNION & DEDUP (dbt) ] ──► [ STAR SCHEMA ] ──► [ DATA MARTS ]
-[ OFFLINE EXCEL CHANNEL ] ────► [ OFFLINE STAGING TABLE ] ────┘
+[ OFFLINE EXCEL CHANNEL ] ────► [ OFFLINE STAGING TABLE ] ────┘             ▲
+                                                                           │ (Triggered by)
+                                                                    [ dbt Scheduler ] (or Airflow DAG)
+
+[ PROMETHEUS / GRAFANA ] ────► Scrapes Metrics from ───► [ KAFKA EXPORTER / POSTGRES EXPORTER ]
 ```
 
 - **Spacing**: Keep at least `60px` between components to allow room for connector labels and avoid visual clutter.
 - **Docker Containerization**: You can draw a very light container boundary (Opacity 3%) around the entire diagram with a **Docker Icon** in the top-right corner to indicate that all services are fully containerized under Docker.
+

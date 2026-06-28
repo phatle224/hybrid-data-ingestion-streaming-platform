@@ -12,8 +12,8 @@ Below is the data flow architecture from source systems to the reporting data wa
 graph TB
     subgraph "1. Offline Ingestion Channel"
         EXCEL["Contract Excel File<br/>(Travel, Vehicle, Health...)"]
-        PORTAL_FE["Portal UI (React)<br/>:3000"]
-        PORTAL_BE["Portal API (FastAPI)<br/>:8000"]
+        PORTAL_FE["Portal UI (React)<br/>:3010"]
+        PORTAL_BE["Portal API (FastAPI)<br/>:3011"]
     end
 
     subgraph "2. Online Real-Time CDC"
@@ -28,13 +28,20 @@ graph TB
     end
 
     subgraph "4. Transformation Layer (dbt ELT)"
-        SCHEDULER["dbt Scheduler Service<br/>(Runs dbt periodically every 5 minutes)"]
-        DBT_PROJ["dbt Analytics Project<br/>(Models: Staging -> Warehouse -> Mart)"]
+        SCHEDULER["dbt Scheduler Service /<br/>Airflow DAG Orchestrator"]
+        DBT_PROJ["dbt Analytics Project<br/>(Models, Tests & Marts)"]
     end
 
     subgraph "5. Presentation Layer (BI Reporting)"
         DWH[("Data Warehouse<br/>(Star Schema: dim_*, fct_*)")]
         MARTS[("Data Marts<br/>(dm_profiling_analysis, dm_contract_summary)")]
+    end
+
+    subgraph "6. Observability Stack"
+        PROM["Prometheus Server<br/>(Metrics collector)"]
+        GRAF["Grafana Dashboards<br/>(Real-time visualizations)"]
+        K_EXP["Kafka Exporter"]
+        P_EXP["PostgreSQL Exporter"]
     end
 
     %% Offline Flow
@@ -51,9 +58,16 @@ graph TB
 
     %% ELT Flow with dbt
     STG_DB -->|"Source refs"| DBT_PROJ
-    SCHEDULER -->|"Trigger runs"| DBT_PROJ
+    SCHEDULER -->|"Trigger runs & tests"| DBT_PROJ
     DBT_PROJ -->|"Materialize tables"| DWH
     DWH -->|"Join and Aggregation"| MARTS
+
+    %% Monitoring Flow
+    KAFKA -.->|"Offset Tracking"| K_EXP
+    K_EXP --> PROM
+    STG_DB -.->|"DB Session & Size Tracking"| P_EXP
+    P_EXP --> PROM
+    PROM --> GRAF
 ```
 
 ---
