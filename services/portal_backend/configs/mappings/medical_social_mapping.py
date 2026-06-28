@@ -114,7 +114,7 @@ class MedicalSocialMapping(BaseInsuranceMapping):
                     'field': field,
                     'excel_column': excel_col,
                     'error_type': 'MISSING',
-                    'message': f"Thiếu dữ liệu tại cột '{excel_col}' (bắt buộc)",
+                    'message': f"Missing data in column '{excel_col}' (required)",
                     'current_value': None,
                 })
                 continue
@@ -124,7 +124,7 @@ class MedicalSocialMapping(BaseInsuranceMapping):
                     'field': field,
                     'excel_column': excel_col,
                     'error_type': 'EMPTY',
-                    'message': f"Dữ liệu trống tại cột '{excel_col}' (bắt buộc)",
+                    'message': f"Empty data in column '{excel_col}' (required)",
                     'current_value': value,
                 })
 

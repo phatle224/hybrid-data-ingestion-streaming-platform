@@ -124,7 +124,7 @@ class UploadController:
                 return {
                     "success": False,
                     "status": "validation_error",
-                    "message": f"File '{file.filename}' có {len(parse_errors)} dòng lỗi. Toàn bộ file chưa được import; vui lòng sửa hết lỗi rồi upload lại.",
+                    "message": f"File '{file.filename}' has {len(parse_errors)} invalid rows. The file was not imported; please fix all errors and upload again.",
                     "filename": file.filename,
                     "insurance_type": insurance_type,
                     "records_processed": 0,
@@ -142,7 +142,7 @@ class UploadController:
                         "all_errors": validation_summary['all_errors'],
                         "has_more_errors": validation_summary['has_more_errors'],
                     },
-                    "suggestion": "Phải sửa toàn bộ dòng lỗi trong file Excel trước khi import. Hiện tại hệ thống không import một phần dữ liệu.",
+                    "suggestion": "You must fix all invalid rows in the Excel file before import. Partial import is currently disabled.",
                     "upload_id": None
                 }
             
@@ -169,7 +169,7 @@ class UploadController:
                                 'field': 'db_insert',
                                 'excel_column': 'N/A',
                                 'error_type': 'INSERT_FAILED',
-                                'message': f'Lỗi khi ghi vào DB: {error_msg}',
+                                'message': f'Database insert error: {error_msg}',
                                 'current_value': None
                             }],
                             'record_preview': {
@@ -201,7 +201,7 @@ class UploadController:
                 return {
                     "success": False,
                     "status": "validation_error",
-                    "message": f"File '{file.filename}' có {len(parse_errors)} dòng lỗi, không có dữ liệu hợp lệ để import",
+                    "message": f"File '{file.filename}' has {len(parse_errors)} invalid rows and contains no valid data to import.",
                     "filename": file.filename,
                     "insurance_type": insurance_type,
                     "records_processed": 0,
@@ -218,7 +218,7 @@ class UploadController:
                         "all_errors": validation_summary['all_errors'],
                         "has_more_errors": validation_summary['has_more_errors'],
                     },
-                    "suggestion": "Vui lòng kiểm tra và sửa các dòng lỗi trong file Excel, sau đó upload lại.",
+                    "suggestion": "Please review and fix invalid rows in the Excel file, then upload again.",
                     "upload_id": None
                 }
             
@@ -252,7 +252,7 @@ class UploadController:
                 return {
                     "success": True,
                     "status": "partial_success",
-                    "message": f"Đã import {inserted_count}/{total_rows} dòng. Có {len(parse_errors)} dòng lỗi không được import.",
+                    "message": f"Imported {inserted_count}/{total_rows} rows. {len(parse_errors)} invalid rows were skipped.",
                     "filename": file.filename,
                     "insurance_type": insurance_type,
                     # Summary counts
@@ -282,7 +282,7 @@ class UploadController:
                         "all_errors": validation_summary['all_errors'],
                         "has_more_errors": validation_summary['has_more_errors'],
                     },
-                    "suggestion": "Các dòng hợp lệ đã được import. Vui lòng sửa các dòng lỗi và upload lại nếu cần.",
+                    "suggestion": "Valid rows were imported. Fix invalid rows and upload again if needed.",
                     "upload_id": f"upload_{insurance_type}_{inserted_count}"
                 }
             
@@ -290,11 +290,11 @@ class UploadController:
                 # ALL records valid - full success
                 # Update message based on whether there are duplicates
                 if duplicate_count > 0 and inserted_count == 0:
-                    message = f"Tất cả {duplicate_count} dòng đã tồn tại trong hệ thống (duplicates). Không có dòng mới được thêm."
+                    message = f"All {duplicate_count} rows already exist in the system (duplicates). No new rows were added."
                 elif duplicate_count > 0:
-                    message = f"Đã import {inserted_count}/{total_rows} dòng. Có {duplicate_count} dòng trùng lặp đã bỏ qua."
+                    message = f"Imported {inserted_count}/{total_rows} rows. {duplicate_count} duplicate rows were skipped."
                 else:
-                    message = f"Đã xử lý thành công {inserted_count}/{total_rows} dòng từ file {file.filename}"
+                    message = f"Successfully processed {inserted_count}/{total_rows} rows from file {file.filename}."
                 
                 # Build record previews for frontend tabs
                 inserted_previews = [self._record_to_preview(r) for r in inserted_records] if inserted_records else []

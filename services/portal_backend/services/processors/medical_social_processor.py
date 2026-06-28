@@ -186,10 +186,10 @@ class MedicalSocialProcessor(IInsuranceProcessor):
                     'error_count': 0,
                     'field_errors': [],
                     'record_preview': {
-                        'contractId': record_dict.get('contractId', '(trống)'),
-                        'peopleName': record_dict.get('peopleName', '(trống)'),
-                        'majorName': record_dict.get('majorName', '(trống)'),
-                        'companyProviderName': record_dict.get('companyProviderName', '(trống)'),
+                        'contractId': record_dict.get('contractId', '(empty)'),
+                        'peopleName': record_dict.get('peopleName', '(empty)'),
+                        'majorName': record_dict.get('majorName', '(empty)'),
+                        'companyProviderName': record_dict.get('companyProviderName', '(empty)'),
                     }
                 }
             errors_by_row[row_idx]['field_errors'].append({
@@ -210,7 +210,7 @@ class MedicalSocialProcessor(IInsuranceProcessor):
             # Gender enum: only Nam/Nu allowed before converting to int
             people_gender = raw.get('peopleGender')
             if people_gender not in (None, '') and people_gender not in (0, 1):
-                add_error(row_number, 'peopleGender', 'INVALID_ENUM', 'Giới tính chỉ chấp nhận Nam hoặc Nữ', people_gender)
+                add_error(row_number, 'peopleGender', 'INVALID_ENUM', 'Gender must be Male (Nam) or Female (Nữ)', people_gender)
 
             # Relationship enum conversion must result in integer code 0..6
             people_relationship = raw.get('peopleRelationship')
@@ -219,7 +219,7 @@ class MedicalSocialProcessor(IInsuranceProcessor):
                     row_number,
                     'peopleRelationship',
                     'INVALID_ENUM',
-                    'Mối quan hệ không hợp lệ. Chỉ chấp nhận: Bản thân, Bố/Mẹ, Vợ/Chồng, Anh/Chị/Em, Con, Khác, Bố/Mẹ vợ/chồng',
+                    'Invalid relationship. Only accepted: Self (Bản thân), Parents (Bố/Mẹ), Spouse (Vợ/Chồng), Siblings (Anh/Chị/Em), Children (Con), Parents-in-law (Bố/Mẹ vợ/chồng), Other (Khác)',
                     people_relationship,
                 )
 
@@ -229,7 +229,7 @@ class MedicalSocialProcessor(IInsuranceProcessor):
                 if val:
                     val_str = str(val).strip()
                     if not re.match(r'^0\d{9,10}$', val_str):
-                        add_error(row_number, f, 'FORMAT_PHONE', 'SĐT phải bắt đầu bằng số 0 và có 10-11 chữ số', val)
+                        add_error(row_number, f, 'FORMAT_PHONE', 'Phone number must start with 0 and contain 10-11 digits', val)
 
             # Email format validation (nullable)
             for f in ['peopleEmail', 'payerEmail']:
@@ -237,27 +237,27 @@ class MedicalSocialProcessor(IInsuranceProcessor):
                 if val:
                     val_str = str(val).strip()
                     if '@' not in val_str:
-                        add_error(row_number, f, 'FORMAT_EMAIL', 'Email không hợp lệ (phải chứa @)', val)
+                        add_error(row_number, f, 'FORMAT_EMAIL', 'Invalid email (must contain @)', val)
 
             # Social ID format: already normalized in post_process (trim + remove special chars)
 
             # Renewal enum (required): Tái tục -> 0, Mua mới -> 1
             renewal = raw.get('renewal')
             if renewal in (None, ''):
-                add_error(row_number, 'renewal', 'MISSING', 'Phương án KH là trường bắt buộc', renewal)
+                add_error(row_number, 'renewal', 'MISSING', 'Renewal plan is a required field', renewal)
             elif renewal not in (0, 1):
-                add_error(row_number, 'renewal', 'INVALID_ENUM', 'Phương án KH chỉ chấp nhận Tái tục hoặc Mua mới', renewal)
+                add_error(row_number, 'renewal', 'INVALID_ENUM', 'Renewal plan must be Renewal (Tái tục) or New Purchase (Mua mới)', renewal)
 
             # Fee must be numeric and >= 1,000
             fee_val = raw.get('feeInsurance')
             if fee_val is not None and fee_val != '':
                 parsed_fee = self._parse_amount(fee_val)
                 if parsed_fee is None:
-                    add_error(row_number, 'feeInsurance', 'INVALID_AMOUNT', 'Phí bảo hiểm không đúng định dạng số', fee_val)
+                    add_error(row_number, 'feeInsurance', 'INVALID_AMOUNT', 'Insurance fee must be a valid number format', fee_val)
                 else:
                     raw['feeInsurance'] = parsed_fee
                     if parsed_fee < min_amount_threshold:
-                        add_error(row_number, 'feeInsurance', 'INVALID_AMOUNT', 'Phí bảo hiểm phải lớn hơn hoặc bằng 1,000', fee_val)
+                        add_error(row_number, 'feeInsurance', 'INVALID_AMOUNT', 'Insurance fee must be greater than or equal to 1,000', fee_val)
 
             # Date range check: contract end date must be greater than start date
             start_dt = self._parse_date(raw.get('contractObjectStartDate'))
@@ -267,7 +267,7 @@ class MedicalSocialProcessor(IInsuranceProcessor):
                     row_number,
                     'contractObjectEndDate',
                     'INVALID_DATE',
-                    'Ngày kết thúc phải lớn hơn ngày bắt đầu',
+                    'End date must be greater than start date',
                     raw.get('contractObjectEndDate'),
                 )
 

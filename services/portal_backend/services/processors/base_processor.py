@@ -257,11 +257,11 @@ class IInsuranceProcessor(ABC):
                     'error_count': len(field_errors),
                     'field_errors': field_errors,
                     'record_preview': {
-                        'contractId': record_dict.get('contractId', '(trống)'),
-                        'peopleName': record_dict.get('peopleName', '(trống)'),
-                        'majorName': record_dict.get('majorName', '(trống)'),
-                        'programName': record_dict.get('programName', record_dict.get('majorName', '(trống)')),
-                        'companyProviderName': record_dict.get('companyProviderName', '(trống)'),
+                        'contractId': record_dict.get('contractId', '(empty)'),
+                        'peopleName': record_dict.get('peopleName', '(empty)'),
+                        'majorName': record_dict.get('majorName', '(empty)'),
+                        'programName': record_dict.get('programName', record_dict.get('majorName', '(empty)')),
+                        'companyProviderName': record_dict.get('companyProviderName', '(empty)'),
                     }
                 })
             elif not is_valid_model:
@@ -278,11 +278,11 @@ class IInsuranceProcessor(ABC):
                         'current_value': None
                     }],
                     'record_preview': {
-                        'contractId': record_dict.get('contractId', '(trống)'),
-                        'peopleName': record_dict.get('peopleName', '(trống)'),
-                        'majorName': record_dict.get('majorName', '(trống)'),
-                        'programName': record_dict.get('programName', record_dict.get('majorName', '(trống)')),
-                        'companyProviderName': record_dict.get('companyProviderName', '(trống)'),
+                        'contractId': record_dict.get('contractId', '(empty)'),
+                        'peopleName': record_dict.get('peopleName', '(empty)'),
+                        'majorName': record_dict.get('majorName', '(empty)'),
+                        'programName': record_dict.get('programName', record_dict.get('majorName', '(empty)')),
+                        'companyProviderName': record_dict.get('companyProviderName', '(empty)'),
                     }
                 })
             

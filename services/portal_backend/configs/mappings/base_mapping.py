@@ -339,7 +339,7 @@ class BaseInsuranceMapping(ABC):
                     'field': field,
                     'excel_column': excel_col,
                     'error_type': 'MISSING',
-                    'message': f"Thiếu dữ liệu tại cột '{excel_col}' (field: {field})",
+                    'message': f"Missing data in column '{excel_col}' (field: {field})",
                     'current_value': None
                 })
             elif isinstance(value, str) and not value.strip():
@@ -347,7 +347,7 @@ class BaseInsuranceMapping(ABC):
                     'field': field,
                     'excel_column': excel_col,
                     'error_type': 'EMPTY',
-                    'message': f"Dữ liệu trống tại cột '{excel_col}' (field: {field})",
+                    'message': f"Empty data in column '{excel_col}' (field: {field})",
                     'current_value': value
                 })
 
@@ -360,7 +360,7 @@ class BaseInsuranceMapping(ABC):
                 'field': 'peopleName',
                 'excel_column': excel_col,
                 'error_type': 'MISSING',
-                'message': f"Thiếu tên người được bảo hiểm tại cột '{excel_col}'",
+                'message': f"Missing insured person name in column '{excel_col}'",
                 'current_value': None
             })
         elif isinstance(people_name_value, str) and not people_name_value.strip():
@@ -368,7 +368,7 @@ class BaseInsuranceMapping(ABC):
                 'field': 'peopleName',
                 'excel_column': excel_col,
                 'error_type': 'EMPTY',
-                'message': f"Tên người được bảo hiểm trống tại cột '{excel_col}'",
+                'message': f"Insured person name is empty in column '{excel_col}'",
                 'current_value': people_name_value
             })
 
@@ -402,8 +402,8 @@ class BaseInsuranceMapping(ABC):
                     'field': 'programCodeMiningChannel',
                     'excel_column': excel_col,
                     'error_type': 'INVALID_VALUE',
-                    'message': f"Giá trị Channel không hợp lệ: '{channel_value}'. "
-                               f"Các giá trị hợp lệ: {valid_values_str}",
+                    'message': f"Invalid Channel value: '{channel_value}'. "
+                               f"Valid values: {valid_values_str}",
                     'current_value': channel_value
                 })
 
@@ -432,8 +432,8 @@ class BaseInsuranceMapping(ABC):
                 'field': field,
                 'excel_column': excel_col,
                 'error_type': 'MISSING',
-                'message': f"Thiếu 'Hình thức thanh toán' (bắt buộc - NOT NULL). "
-                           f"Các giá trị hợp lệ: {valid_values_str}",
+                'message': f"Missing 'Payment Method' (required). "
+                           f"Valid values: {valid_values_str}",
                 'current_value': value,
             })
         elif value not in self.VALID_PAYMENT_METHODS:
@@ -441,8 +441,8 @@ class BaseInsuranceMapping(ABC):
                 'field': field,
                 'excel_column': excel_col,
                 'error_type': 'INVALID_VALUE',
-                'message': f"Hình thức thanh toán không hợp lệ: '{value}'. "
-                           f"Các giá trị hợp lệ: {valid_values_str}",
+                'message': f"Invalid Payment Method: '{value}'. "
+                           f"Valid values: {valid_values_str}",
                 'current_value': value,
             })
 
@@ -473,7 +473,7 @@ class BaseInsuranceMapping(ABC):
                 'field': field,
                 'excel_column': excel_col,
                 'error_type': 'MISSING',
-                'message': f"Thiếu 'Nhà cung cấp bảo hiểm' (bắt buộc - NOT NULL).",
+                'message': f"Missing 'Insurance Provider' (required).",
                 'current_value': value,
             })
         elif value not in valid_set:
@@ -482,8 +482,8 @@ class BaseInsuranceMapping(ABC):
                 'field': field,
                 'excel_column': excel_col,
                 'error_type': 'INVALID_VALUE',
-                'message': f"Nhà cung cấp bảo hiểm không hợp lệ: '{value}'. "
-                           f"Các giá trị hợp lệ: {valid_values_str}",
+                'message': f"Invalid Insurance Provider: '{value}'. "
+                           f"Valid values: {valid_values_str}",
                 'current_value': value,
             })
 
@@ -514,7 +514,7 @@ class BaseInsuranceMapping(ABC):
                 'field': field,
                 'excel_column': excel_col,
                 'error_type': 'MISSING',
-                'message': f"Thiếu 'Sản phẩm' (bắt buộc - NOT NULL).",
+                'message': f"Missing 'Product' (required).",
                 'current_value': value,
             })
         elif value not in valid_set:
@@ -523,8 +523,8 @@ class BaseInsuranceMapping(ABC):
                 'field': field,
                 'excel_column': excel_col,
                 'error_type': 'INVALID_VALUE',
-                'message': f"Sản phẩm không hợp lệ: '{value}'. "
-                           f"Các giá trị hợp lệ: {valid_values_str}",
+                'message': f"Invalid Product: '{value}'. "
+                           f"Valid values: {valid_values_str}",
                 'current_value': value,
             })
 
@@ -547,28 +547,28 @@ class BaseInsuranceMapping(ABC):
     
     def get_field_display_name(self, db_field: str) -> str:
         """
-        Get human-readable display name for a database field (Vietnamese)
+        Get human-readable display name for a database field
         
         Args:
             db_field: Database field name
             
         Returns:
-            Vietnamese display name
+            Display name
         """
         display_names = {
-            'contractId': 'Số hợp đồng/Số GCN/Mã tờ khai',
-            'name': 'Họ và tên người được BH',
-            'peopleName': 'Tên khách hàng/Họ tên NĐBH',
-            'majorName': 'Sản phẩm (Loại BH)',
-            'companyProviderName': 'Đối tác nhà bảo hiểm',
-            'startDateJourney': 'Ngày đi',
-            'endDateJourney': 'Ngày về',
-            'contractObjectStartDate': 'Ngày bắt đầu hiệu lực',
-            'contractObjectEndDate': 'Ngày kết thúc hiệu lực',
-            'contractStartDate': 'Ngày hiệu lực',
-            'contractEndDate': 'Ngày kết thúc',
-            'feeInsurance': 'Phí bảo hiểm',
-            'feeMainBenefit': 'Phí bảo hiểm chính',
+            'contractId': 'Contract ID/Certificate ID/Declaration ID',
+            'name': 'Insured Person Full Name',
+            'peopleName': 'Customer Name/Insured Name',
+            'majorName': 'Product (Insurance Type)',
+            'companyProviderName': 'Insurance Provider Partner',
+            'startDateJourney': 'Departure Date',
+            'endDateJourney': 'Return Date',
+            'contractObjectStartDate': 'Effective Start Date',
+            'contractObjectEndDate': 'Effective End Date',
+            'contractStartDate': 'Effective Date',
+            'contractEndDate': 'End Date',
+            'feeInsurance': 'Insurance Fee',
+            'feeMainBenefit': 'Main Insurance Fee',
         }
         return display_names.get(db_field, db_field)
     

@@ -124,7 +124,7 @@ class HealthMapping(BaseInsuranceMapping):
                     'field': field,
                     'excel_column': excel_col,
                     'error_type': 'MISSING',
-                    'message': f"Thiếu dữ liệu tại cột '{excel_col}' (bắt buộc)",
+                    'message': f"Missing data in column '{excel_col}' (required)",
                     'current_value': None
                 })
             elif isinstance(value, str) and not value.strip():
@@ -132,7 +132,7 @@ class HealthMapping(BaseInsuranceMapping):
                     'field': field,
                     'excel_column': excel_col,
                     'error_type': 'EMPTY',
-                    'message': f"Dữ liệu trống tại cột '{excel_col}' (bắt buộc)",
+                    'message': f"Empty data in column '{excel_col}' (required)",
                     'current_value': value
                 })
                 
@@ -147,7 +147,7 @@ class HealthMapping(BaseInsuranceMapping):
                 'field': 'peopleLicense',
                 'excel_column': 'CCCD / Passport NĐBH',
                 'error_type': 'MISSING',
-                'message': "Bắt buộc phải nhập CCCD hoặc Passport của NĐBH",
+                'message': "Either CCCD or Passport must be provided for the insured person",
                 'current_value': None
             })
                 

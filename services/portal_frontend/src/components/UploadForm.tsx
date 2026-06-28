@@ -292,11 +292,11 @@ function InvalidTable({ errors }: InvalidTableProps) {
 
 // Custom Grid Icons & Options
 const INSURANCE_OPTIONS = [
-  { value: InsuranceType.HEALTH, label: 'Health', sub: 'Sức khỏe & Tai nạn', icon: Heart },
-  { value: InsuranceType.VEHICLE, label: 'Vehicle', sub: 'Bảo hiểm Ô tô', icon: Car },
-  { value: InsuranceType.TRAVEL, label: 'Travel', sub: 'Du lịch toàn cầu', icon: Airplane },
-  { value: InsuranceType.MOTO, label: 'Motorcycle', sub: 'Bảo hiểm Xe máy', icon: Motorcycle },
-  { value: InsuranceType.MEDICAL_SOCIAL, label: 'Med/Social', sub: 'Bảo hiểm Y tế & Xã hội', icon: ShieldCheck },
+  { value: InsuranceType.HEALTH, label: 'Health', sub: 'Health & Accident', icon: Heart },
+  { value: InsuranceType.VEHICLE, label: 'Vehicle', sub: 'Auto Insurance', icon: Car },
+  { value: InsuranceType.TRAVEL, label: 'Travel', sub: 'Global Travel', icon: Airplane },
+  { value: InsuranceType.MOTO, label: 'Motorcycle', sub: 'Motorbike Insurance', icon: Motorcycle },
+  { value: InsuranceType.MEDICAL_SOCIAL, label: 'Med/Social', sub: 'Medical & Social Insurance', icon: ShieldCheck },
 ]
 
 interface ResultState {
@@ -319,12 +319,6 @@ function UploadForm() {
   const [progress, setProgress] = useState(0)
   const [result, setResult] = useState<ResultState | null>(null)
   const [activeTab, setActiveTab] = useState<'inserted' | 'duplicates' | 'invalid' | 'valid'>('valid')
-  
-  // Advanced Parameter States
-  const [dryRun, setDryRun] = useState(false)
-  const [autoResolve, setAutoResolve] = useState(true)
-  const [deepIndexing, setDeepIndexing] = useState(false)
-  const [showAdvanced, setShowAdvanced] = useState(false)
 
   // Real-time Console Log States
   const [logs, setLogs] = useState<ConsoleLog[]>([])
@@ -366,7 +360,7 @@ function UploadForm() {
       if (progress === 0) {
         setLogs([])
         addLog('info', `Booting high-throughput Ingestion Engine pipeline...`)
-        addLog('info', `Establishing virtual sandbox. Parameter DryRun=${dryRun}, AutoResolve=${autoResolve}`)
+        addLog('info', `Establishing virtual sandbox for ingest execution...`)
       } else if (progress > 5 && progress <= 15) {
         if (logs.length < 3) {
           addLog('info', `Target pipeline schema configured for: [${insuranceType}]`)
@@ -553,70 +547,6 @@ function UploadForm() {
                   )}
                 </div>
               </div>
-            </div>
-
-            {/* Collapsible Advanced Parameters */}
-            <div className="advanced-accordion">
-              <button 
-                type="button" 
-                className="accordion-header"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-              >
-                <span>Advanced Parameters</span>
-                <CaretDown size={14} className={`caret-icon ${showAdvanced ? 'rotated' : ''}`} />
-              </button>
-              
-              {showAdvanced && (
-                <div className="accordion-content">
-                  <div className="toggle-group">
-                    <div className="toggle-info">
-                      <span className="toggle-label">Dry Run Execution</span>
-                      <span className="toggle-desc">Dry run schema validation, bypass database commits</span>
-                    </div>
-                    <label className="switch">
-                      <input 
-                        type="checkbox" 
-                        checked={dryRun} 
-                        onChange={(e) => setDryRun(e.target.checked)}
-                        disabled={status === UploadStatus.UPLOADING}
-                      />
-                      <span className="slider round"></span>
-                    </label>
-                  </div>
-
-                  <div className="toggle-group">
-                    <div className="toggle-info">
-                      <span className="toggle-label">Conflict Resolution</span>
-                      <span className="toggle-desc">Automatically override and merge duplicate IDs</span>
-                    </div>
-                    <label className="switch">
-                      <input 
-                        type="checkbox" 
-                        checked={autoResolve} 
-                        onChange={(e) => setAutoResolve(e.target.checked)}
-                        disabled={status === UploadStatus.UPLOADING}
-                      />
-                      <span className="slider round"></span>
-                    </label>
-                  </div>
-
-                  <div className="toggle-group">
-                    <div className="toggle-info">
-                      <span className="toggle-label">Deep Profiling</span>
-                      <span className="toggle-desc">Generate statistical insights on row values</span>
-                    </div>
-                    <label className="switch">
-                      <input 
-                        type="checkbox" 
-                        checked={deepIndexing} 
-                        onChange={(e) => setDeepIndexing(e.target.checked)}
-                        disabled={status === UploadStatus.UPLOADING}
-                      />
-                      <span className="slider round"></span>
-                    </label>
-                  </div>
-                </div>
-              )}
             </div>
 
             <button

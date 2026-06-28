@@ -244,10 +244,10 @@ class HealthProcessor(IInsuranceProcessor):
                     'error_count': 0,
                     'field_errors': [],
                     'record_preview': {
-                        'contractId': record_dict.get('contractId', '(trống)'),
-                        'peopleName': record_dict.get('peopleName', '(trống)'),
-                        'majorName': record_dict.get('majorName', '(trống)'),
-                        'companyProviderName': record_dict.get('companyProviderName', '(trống)'),
+                        'contractId': record_dict.get('contractId', '(empty)'),
+                        'peopleName': record_dict.get('peopleName', '(empty)'),
+                        'majorName': record_dict.get('majorName', '(empty)'),
+                        'companyProviderName': record_dict.get('companyProviderName', '(empty)'),
                     }
                 }
             errors_by_row[row_idx]['field_errors'].append({
@@ -265,24 +265,24 @@ class HealthProcessor(IInsuranceProcessor):
             min_amount_threshold = 1000.0
 
             def build_amount_too_small_message(label: str, parsed_amount: float) -> str:
-                base_message = f"{label} phải lớn hơn hoặc bằng 1,000"
+                base_message = f"{label} must be greater than or equal to 1,000"
                 if parsed_amount is not None and 0 < parsed_amount < min_amount_threshold:
                     suggested = int(round(parsed_amount * 1000))
                     suggested_text = f"{suggested:,}".replace(',', '.')
-                    return f"{base_message}. Có thể sai đơn vị (nghìn đồng). Vui lòng kiểm tra và sửa, ví dụ {parsed_amount:g} -> {suggested_text}"
+                    return f"{base_message}. Possible unit error (thousands). Please check and correct, e.g., {parsed_amount:g} -> {suggested_text}"
                 return base_message
 
             gender_value = raw.get('peopleGender')
             if gender_value is not None:
                 gender_text = str(gender_value).strip()
                 if not gender_text:
-                    add_error(row_number, 'peopleGender', 'EMPTY', 'Giới tính không được để trống', gender_value)
+                    add_error(row_number, 'peopleGender', 'EMPTY', 'Gender cannot be empty', gender_value)
                 else:
                     # Parse and normalize the gender value
                     parsed_gender = self._parse_gender(gender_text)
                     if parsed_gender not in self._gender_map:
                         # Still invalid after parsing
-                        add_error(row_number, 'peopleGender', 'INVALID_ENUM', f'Giới tính không hợp lệ: {gender_text}', gender_value)
+                        add_error(row_number, 'peopleGender', 'INVALID_ENUM', f'Invalid gender: {gender_text}', gender_value)
                     else:
                         # Update raw data with parsed value for consistency
                         raw['peopleGender'] = parsed_gender
@@ -291,13 +291,13 @@ class HealthProcessor(IInsuranceProcessor):
             if relationship_value is not None:
                 relationship_text = str(relationship_value).strip()
                 if not relationship_text:
-                    add_error(row_number, 'peopleRelationship', 'EMPTY', 'Mối quan hệ không được để trống', relationship_value)
+                    add_error(row_number, 'peopleRelationship', 'EMPTY', 'Relationship cannot be empty', relationship_value)
                 else:
                     # Parse and normalize the relationship value
                     parsed_relationship = self._parse_relationship(relationship_text)
                     if parsed_relationship not in self._relationship_map:
                         # Still invalid after parsing
-                        add_error(row_number, 'peopleRelationship', 'INVALID_ENUM', f'Mối quan hệ không hợp lệ: {relationship_text}', relationship_value)
+                        add_error(row_number, 'peopleRelationship', 'INVALID_ENUM', f'Invalid relationship: {relationship_text}', relationship_value)
                     else:
                         # Update raw data with parsed value for consistency
                         raw['peopleRelationship'] = parsed_relationship
@@ -311,7 +311,7 @@ class HealthProcessor(IInsuranceProcessor):
                 if val:
                     val_str = str(val).split('.')[0].strip()
                     if not re.match(r'^0\d{9,10}$', val_str):
-                        add_error(row_number, f, 'FORMAT_PHONE', 'SĐT phải bắt đầu bằng số 0, 10-11 số, không khoảng trắng', val)
+                        add_error(row_number, f, 'FORMAT_PHONE', 'Phone number must start with 0, contain 10-11 digits, and have no spaces', val)
                         
             # 3. Email format
             for f in ['peopleEmail', 'payerEmail']:
@@ -319,7 +319,7 @@ class HealthProcessor(IInsuranceProcessor):
                 if val:
                     val_str = str(val).strip()
                     if '@' not in val_str:
-                        add_error(row_number, f, 'FORMAT_EMAIL', 'Email không hợp lệ (phải chứa @)', val_str)
+                        add_error(row_number, f, 'FORMAT_EMAIL', 'Invalid email (must contain @)', val_str)
                         
             # 4. Amount check (remove thousand separators: 2.980.800 -> 2980800)
             feeMain = raw.get('feeInsurance')
@@ -340,7 +340,7 @@ class HealthProcessor(IInsuranceProcessor):
                             row_number,
                             'feeInsurance',
                             'INVALID_AMOUNT',
-                            build_amount_too_small_message('Phí bảo hiểm', f_val),
+                            build_amount_too_small_message('Insurance fee', f_val),
                             feeMain
                         )
                     else:
@@ -363,7 +363,7 @@ class HealthProcessor(IInsuranceProcessor):
                             row_number,
                             'amountPay',
                             'INVALID_AMOUNT',
-                            build_amount_too_small_message('Số tiền thanh toán', a_val),
+                            build_amount_too_small_message('Payment amount', a_val),
                             amtPay
                         )
                     else:
@@ -373,7 +373,7 @@ class HealthProcessor(IInsuranceProcessor):
                     
             if f_val is not None and a_val is not None:
                 if a_val > f_val:
-                    add_error(row_number, 'amountPay', 'INVALID_AMOUNT', 'Số tiền thanh toán phải <= Phí bảo hiểm', f"{amtPay} > {feeMain}")
+                    add_error(row_number, 'amountPay', 'INVALID_AMOUNT', 'Payment amount must be less than or equal to Insurance fee', f"{amtPay} > {feeMain}")
             
             # 5. Dates check
             def _parse_vi_date(dt_str):
@@ -418,18 +418,18 @@ class HealthProcessor(IInsuranceProcessor):
             now_dt = datetime.now()
             
             if pay_dt and pay_dt > now_dt:
-                add_error(row_number, 'payment_date', 'INVALID_DATE', 'Ngày thanh toán không được lớn hơn ngày hiện tại', raw.get('payment_date'))
+                add_error(row_number, 'payment_date', 'INVALID_DATE', 'Payment date cannot be in the future', raw.get('payment_date'))
                 
             if start_dt and pay_dt and start_dt < pay_dt:
-                add_error(row_number, 'contractStartDate', 'INVALID_DATE', 'Ngày hiệu lực phải >= Ngày thanh toán', raw.get('contractStartDate'))
+                add_error(row_number, 'contractStartDate', 'INVALID_DATE', 'Effective date must be greater than or equal to payment date', raw.get('contractStartDate'))
                 
             if dob_dt and start_dt:
                 age_days = (start_dt - dob_dt).days
                 if age_days < 30:
-                    add_error(row_number, 'contractStartDate', 'INVALID_DATE', f'Người được bảo hiểm chưa đủ 30 ngày tuổi bắt đầu hiệu lực (mới {age_days} ngày)', raw.get('contractStartDate'))
+                    add_error(row_number, 'contractStartDate', 'INVALID_DATE', f'Insured person is not yet 30 days old at the effective date (only {age_days} days old)', raw.get('contractStartDate'))
                 
             if end_dt and start_dt and end_dt <= start_dt:
-                add_error(row_number, 'contractEndDate', 'INVALID_DATE', 'Ngày kết thúc phải > Ngày bắt đầu (hiệu lực)', raw.get('contractEndDate'))
+                add_error(row_number, 'contractEndDate', 'INVALID_DATE', 'End date must be greater than effective date', raw.get('contractEndDate'))
         
         # Re-build valid_records based on the newly accumulated errors
         final_valid_records = []

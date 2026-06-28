@@ -206,10 +206,10 @@ class MotoProcessor(IInsuranceProcessor):
                     'error_count': 0,
                     'field_errors': [],
                     'record_preview': {
-                        'contractId': record_dict.get('contractId', '(trống)'),
-                        'peopleName': record_dict.get('peopleName', '(trống)'),
-                        'majorName': record_dict.get('majorName', '(trống)'),
-                        'companyProviderName': record_dict.get('companyProviderName', '(trống)'),
+                        'contractId': record_dict.get('contractId', '(empty)'),
+                        'peopleName': record_dict.get('peopleName', '(empty)'),
+                        'majorName': record_dict.get('majorName', '(empty)'),
+                        'companyProviderName': record_dict.get('companyProviderName', '(empty)'),
                     }
                 }
             errors_by_row[row_idx]['field_errors'].append({
@@ -233,12 +233,12 @@ class MotoProcessor(IInsuranceProcessor):
             return float(amount_str)
 
         def build_amount_too_small_message(label: str, parsed_amount: float) -> str:
-            base_message = f"{label} phải lớn hơn hoặc bằng 1,000"
+            base_message = f"{label} must be greater than or equal to 1,000"
             # For positive values below threshold, provide a concrete correction hint.
             if parsed_amount is not None and 0 < parsed_amount < min_amount_threshold:
                 suggested = int(round(parsed_amount * 1000))
                 suggested_text = f"{suggested:,}".replace(',', '.')
-                return f"{base_message}. Có thể sai đơn vị (nghìn đồng). Vui lòng kiểm tra và sửa, ví dụ {parsed_amount:g} -> {suggested_text}"
+                return f"{base_message}. Possible unit error (thousands). Please check and correct, e.g., {parsed_amount:g} -> {suggested_text}"
             return base_message
 
         for idx, record in enumerate(records, start=1):
@@ -251,7 +251,7 @@ class MotoProcessor(IInsuranceProcessor):
             if payer_phone:
                 raw['payerPhone'] = payer_phone
                 if not re.match(r'^0\d{9,10}$', payer_phone):
-                    add_error(row_number, 'payerPhone', 'FORMAT_PHONE', 'SĐT phải bắt đầu bằng số 0, 10-11 số, không khoảng trắng', raw.get('payerPhone'))
+                    add_error(row_number, 'payerPhone', 'FORMAT_PHONE', 'Phone number must start with 0, contain 10-11 digits, and have no spaces', raw.get('payerPhone'))
 
             # Email basic format
             payer_email = raw.get('payerEmail')
@@ -259,7 +259,7 @@ class MotoProcessor(IInsuranceProcessor):
                 email_text = str(payer_email).strip().lower()
                 raw['payerEmail'] = email_text
                 if '@' not in email_text:
-                    add_error(row_number, 'payerEmail', 'FORMAT_EMAIL', 'Email không hợp lệ (phải chứa @)', payer_email)
+                    add_error(row_number, 'payerEmail', 'FORMAT_EMAIL', 'Invalid email (must contain @)', payer_email)
 
             # At least 2 of 3 vehicle identifiers must exist
             id_fields = ['licensePlates', 'chassisNumber', 'engineNumber']
@@ -269,8 +269,8 @@ class MotoProcessor(IInsuranceProcessor):
                     row_number,
                     'licensePlates',
                     'MISSING_VEHICLE_IDENTIFIER',
-                    'Cần tối thiểu 2/3 thông tin xe: Biển số, Số khung, Số máy',
-                    f"Biển số={raw.get('licensePlates') or '(trống)'}, Số khung={raw.get('chassisNumber') or '(trống)'}, Số máy={raw.get('engineNumber') or '(trống)'}"
+                    'Minimum 2 out of 3 vehicle identifiers are required: License plate, Chassis number, Engine number',
+                    f"License plate={raw.get('licensePlates') or '(empty)'}, Chassis number={raw.get('chassisNumber') or '(empty)'}, Engine number={raw.get('engineNumber') or '(empty)'}"
                 )
 
             # Fee validation
@@ -284,13 +284,13 @@ class MotoProcessor(IInsuranceProcessor):
                             row_number,
                             'feeMainBenefit',
                             'INVALID_AMOUNT',
-                            build_amount_too_small_message('Phí bảo hiểm TNDS', fee_main_val),
+                            build_amount_too_small_message('TNDS Insurance fee', fee_main_val),
                             fee_main
                         )
                     elif fee_main_val is not None:
                         raw['feeMainBenefit'] = fee_main_val
                 except (ValueError, TypeError):
-                    add_error(row_number, 'feeMainBenefit', 'INVALID_AMOUNT', 'Phí bảo hiểm TNDS phải là số hợp lệ', fee_main)
+                    add_error(row_number, 'feeMainBenefit', 'INVALID_AMOUNT', 'TNDS Insurance fee must be a valid number', fee_main)
 
             fee_side = raw.get('feeSideBenefit')
             fee_side_val = None
@@ -302,20 +302,20 @@ class MotoProcessor(IInsuranceProcessor):
                             row_number,
                             'feeSideBenefit',
                             'INVALID_AMOUNT',
-                            build_amount_too_small_message('Phí bảo hiểm tai nạn', fee_side_val),
+                            build_amount_too_small_message('Accident Insurance fee', fee_side_val),
                             fee_side
                         )
                     elif fee_side_val is not None:
                         raw['feeSideBenefit'] = fee_side_val
                 except (ValueError, TypeError):
-                    add_error(row_number, 'feeSideBenefit', 'INVALID_AMOUNT', 'Phí bảo hiểm tai nạn phải là số hợp lệ', fee_side)
+                    add_error(row_number, 'feeSideBenefit', 'INVALID_AMOUNT', 'Accident Insurance fee must be a valid number', fee_side)
 
             if fee_main_val is None and fee_side_val is None:
                 add_error(
                     row_number,
                     'feeMainBenefit',
                     'MISSING',
-                    'Cần nhập ít nhất 1 trong 2 trường: PHÍ BẢO HIỂM TNDS BẮT BUỘC hoặc PHÍ BẢO HIỂM TAI NẠN NNTX',
+                    'At least one of the fields is required: PHÍ BẢO HIỂM TNDS BẮT BUỘC or PHÍ BẢO HIỂM TAI NẠN NNTX',
                     None
                 )
 
@@ -329,26 +329,26 @@ class MotoProcessor(IInsuranceProcessor):
                             row_number,
                             'feeInsurance',
                             'INVALID_AMOUNT',
-                            build_amount_too_small_message('Tổng phí bảo hiểm', fee_total_val),
+                            build_amount_too_small_message('Total Insurance Fee', fee_total_val),
                             fee_total
                         )
                     else:
                         raw['feeInsurance'] = fee_total_val
                 except (ValueError, TypeError):
-                    add_error(row_number, 'feeInsurance', 'INVALID_AMOUNT', 'Tổng phí bảo hiểm phải là số hợp lệ', fee_total)
+                    add_error(row_number, 'feeInsurance', 'INVALID_AMOUNT', 'Total Insurance Fee must be a valid number', fee_total)
 
             # Date validation
             start_dt = self._parse_vi_date(raw.get('contractObjectStartDate'))
             end_dt = self._parse_vi_date(raw.get('contractObjectEndDate'))
             if start_dt and end_dt and end_dt < start_dt:
-                add_error(row_number, 'contractObjectEndDate', 'INVALID_DATE', 'Ngày kết thúc phải >= Ngày bắt đầu', raw.get('contractObjectEndDate'))
+                add_error(row_number, 'contractObjectEndDate', 'INVALID_DATE', 'End date must be greater than or equal to start date', raw.get('contractObjectEndDate'))
 
             # Contract period value must be positive if present
             period_value = raw.get('contractPeriodValue')
             if period_value is not None:
                 period_int = self._parse_contract_period_value(period_value)
                 if period_int is None:
-                    add_error(row_number, 'contractPeriodValue', 'INVALID_VALUE', 'Số năm bảo hiểm phải là số nguyên dương hợp lệ', period_value)
+                    add_error(row_number, 'contractPeriodValue', 'INVALID_VALUE', 'Insurance period must be a valid positive integer', period_value)
                 else:
                     raw['contractPeriodValue'] = period_int
 

@@ -3,7 +3,7 @@ export enum InsuranceType {
   VEHICLE = 'VEHICLE',
   MOTO = 'MOTO',
   HEALTH = 'HEALTH',
-  MEDICAL_SOCIAL = 'MEDICAL_SOCIAL',  // Gộp Medical và Social vào 1
+  MEDICAL_SOCIAL = 'MEDICAL_SOCIAL',  // Combined medical and social in one type
 }
 
 export enum UploadStatus {

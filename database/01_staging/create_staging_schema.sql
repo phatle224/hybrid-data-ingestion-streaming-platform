@@ -4,7 +4,6 @@
 -- DESCRIPTION:
 --   Chuyển đổi cú pháp MySQL sang chuẩn PostgreSQL cho database Staging.
 --   - Thêm tiền tố stgInsurance vào tên các bảng để đồng bộ với Source.
---   - Đổi tên schema từ insuranceWarehouse thành staging để tăng tính generic.
 --   - Loại bỏ các cú pháp độc quyền của MySQL (backticks, ENGINE, COLLATE, v.v.).
 -- USAGE: psql -h <host> -U <user> -d <database_name> -f 01_create_staging_schema.sql
 -- ============================================================================

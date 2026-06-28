@@ -175,10 +175,10 @@ class TravelProcessor(IInsuranceProcessor):
                     'error_count': 0,
                     'field_errors': [],
                     'record_preview': {
-                        'contractId': record_dict.get('contractId', '(trống)'),
-                        'peopleName': record_dict.get('peopleName', '(trống)'),
-                        'majorName': record_dict.get('majorName', '(trống)'),
-                        'companyProviderName': record_dict.get('companyProviderName', '(trống)'),
+                        'contractId': record_dict.get('contractId', '(empty)'),
+                        'peopleName': record_dict.get('peopleName', '(empty)'),
+                        'majorName': record_dict.get('majorName', '(empty)'),
+                        'companyProviderName': record_dict.get('companyProviderName', '(empty)'),
                     }
                 }
             errors_by_row[row_idx]['field_errors'].append({
@@ -196,11 +196,11 @@ class TravelProcessor(IInsuranceProcessor):
             min_amount_threshold = 1000.0
 
             def build_amount_too_small_message(label: str, parsed_amount: float) -> str:
-                base_message = f"{label} phải lớn hơn hoặc bằng 1,000"
+                base_message = f"{label} must be greater than or equal to 1,000"
                 if parsed_amount is not None and 0 < parsed_amount < min_amount_threshold:
                     suggested = int(round(parsed_amount * 1000))
                     suggested_text = f"{suggested:,}".replace(',', '.')
-                    return f"{base_message}. Có thể sai đơn vị (nghìn đồng). Vui lòng kiểm tra và sửa, ví dụ {parsed_amount:g} -> {suggested_text}"
+                    return f"{base_message}. Possible unit error (thousands). Please check and correct, e.g., {parsed_amount:g} -> {suggested_text}"
                 return base_message
 
             # Shared rule from Health: if phone exists, must match 0 + 9-10 digits
@@ -208,7 +208,7 @@ class TravelProcessor(IInsuranceProcessor):
             if payer_phone:
                 raw['payerPhone'] = payer_phone
                 if not re.match(r'^0\d{9,10}$', payer_phone):
-                    add_error(row_number, 'payerPhone', 'FORMAT_PHONE', 'SĐT phải bắt đầu bằng số 0, 10-11 số, không khoảng trắng', raw.get('payerPhone'))
+                    add_error(row_number, 'payerPhone', 'FORMAT_PHONE', 'Phone number must start with 0, contain 10-11 digits, and have no spaces', raw.get('payerPhone'))
 
             # Fee must be > 1000 (remove thousand separators: 2.980.800 -> 2980800)
             fee = raw.get('feeInsurance')
@@ -226,13 +226,13 @@ class TravelProcessor(IInsuranceProcessor):
                             row_number,
                             'feeInsurance',
                             'INVALID_AMOUNT',
-                            build_amount_too_small_message('Phí bảo hiểm', fee_val),
+                            build_amount_too_small_message('Insurance fee', fee_val),
                             fee
                         )
                     else:
                         raw['feeInsurance'] = fee_val
                 except (ValueError, TypeError):
-                    add_error(row_number, 'feeInsurance', 'INVALID_AMOUNT', 'Phí bảo hiểm phải là số hợp lệ', fee)
+                    add_error(row_number, 'feeInsurance', 'INVALID_AMOUNT', 'Insurance fee must be a valid number', fee)
 
             start_dt = self._parse_vi_date(raw.get('startDateJourney'))
             end_dt = self._parse_vi_date(raw.get('endDateJourney'))
@@ -241,21 +241,21 @@ class TravelProcessor(IInsuranceProcessor):
 
             # Shared rule from Health: payment date must not be in the future
             if pay_dt and pay_dt > now_dt:
-                add_error(row_number, 'payment_date', 'INVALID_DATE', 'Ngày thanh toán không được lớn hơn ngày hiện tại', raw.get('payment_date'))
+                add_error(row_number, 'payment_date', 'INVALID_DATE', 'Payment date cannot be in the future', raw.get('payment_date'))
 
             # Shared date-order rule (relaxed for historical offline imports where records can be logged post-journey)
             # if start_dt and pay_dt and start_dt < pay_dt:
             #     add_error(row_number, 'startDateJourney', 'INVALID_DATE', 'Ngày đi phải >= Ngày thanh toán', raw.get('startDateJourney'))
 
             if start_dt and end_dt and end_dt <= start_dt:
-                add_error(row_number, 'endDateJourney', 'INVALID_DATE', 'Ngày về phải > Ngày đi', raw.get('endDateJourney'))
+                add_error(row_number, 'endDateJourney', 'INVALID_DATE', 'End date must be greater than start date', raw.get('endDateJourney'))
 
             # journey_days only needs to be a positive integer
             days_value = raw.get('journey_days')
             if days_value is not None:
                 days_int = self._parse_journey_days(days_value)
                 if days_int is None:
-                    add_error(row_number, 'journey_days', 'INVALID_VALUE', 'Số ngày phải là số nguyên hợp lệ', days_value)
+                    add_error(row_number, 'journey_days', 'INVALID_VALUE', 'Number of days must be a valid integer', days_value)
                 else:
                     raw['journey_days'] = days_int
 
