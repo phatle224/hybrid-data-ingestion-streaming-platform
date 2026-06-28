@@ -1,19 +1,58 @@
-# Hybrid Data Ingestion & Streaming ETL Platform
+<div>
+  <img style="width: 100%" src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&reversal=true&text=Hybrid%20ETL%20Platform&fontSize=30&fontColor=ffffff&fontAlign=50&fontAlignY=45&rotate=0&stroke=-&animation=twinkling&desc=Real-time%20CDC%20%E2%80%A2%20Offline%20Excel%20Ingestion&descSize=15&descAlign=50&descAlignY=65&textBg=false&color=gradient" />
+</div>
 
-[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
-[![React](https://img.shields.io/badge/React-18-cyan.svg)](https://react.dev/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100-green.svg)](https://fastapi.tiangolo.com/)
-[![Kafka](https://img.shields.io/badge/Apache_Kafka-3.6-black.svg)](https://kafka.apache.org/)
-[![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://www.docker.com/)
+<div align="center">
+  <strong>Tiếng Việt</strong> | <a href="README_EN.md">English</a>
+</div>
 
-Một nền tảng kỹ nghệ dữ liệu doanh nghiệp (Enterprise Data Engineering Platform) kết hợp hài hòa giữa **Luồng sự kiện thời gian thực (Online Real-time CDC)** và **Cổng tải lên ngoại tuyến (Offline Batch Ingestion)**. Hệ thống tự động đồng bộ, chuẩn hóa dữ liệu từ các nguồn khác nhau vào một kho lưu trữ báo cáo tập trung (Wide Table) với cơ chế chống trùng lặp chéo hiệu năng cao dựa trên SQL và dbt.
+<h3 align="center">Nền tảng kỹ nghệ dữ liệu doanh nghiệp kết hợp luồng sự kiện thời gian thực (CDC) và tải lên Excel ngoại tuyến</h3>
+
+<div align="center">
+  <img src="https://img.shields.io/badge/Frontend-React%2018-61dafb?style=for-the-badge&logo=react&logoColor=black" alt="frontend badge" />
+  <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="backend badge" />
+  <img src="https://img.shields.io/badge/Database-PostgreSQL%2016-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="database badge" />
+  <img src="https://img.shields.io/badge/Streaming-Apache%20Kafka-black?style=for-the-badge&logo=apachekafka&logoColor=white" alt="kafka badge" />
+  <img src="https://img.shields.io/badge/CDC-Debezium-red?style=for-the-badge&logo=debezium&logoColor=white" alt="debezium badge" />
+  <img src="https://img.shields.io/badge/Transform-dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white" alt="dbt badge" />
+</div>
 
 ---
 
-## 🗺️ Kiến Trúc Hệ Thống (System Architecture)
+## 📌 Mục Lục
 
-Hệ thống được chia làm hai kênh nạp dữ liệu chính đồng bộ vào một database Staging trước khi thực hiện luồng ELT gia tăng (Incremental) thông qua dbt sang cơ sở dữ liệu Reporting:
+1. [Tổng Quan Dự Án](#-tong-quan-du-an)
+2. [Kiến Trúc Hệ Thống & Luồng Dữ Liệu](#-kien-truc-he-thong--luong-du-lieu)
+3. [Điểm Nhấn Tính Năng](#-diem-nhan-tinh-nang)
+4. [Công Nghệ Sử Dụng](#-cong-nghe-su-dung)
+5. [Cấu Trúc Thư Mục](#-cau-truc-thu-muc)
+6. [Hướng Dẫn Khởi Chạy Nhanh](#-huong-dan-khoi-chay-nhanh)
+7. [Hướng Dẫn Giám Sát & Logs](#-huong-dan-giam-sat--logs)
+8. [Xử Lý Sự Cố](#-xu-ly-su-co)
 
+---
+
+## 🌟 Tổng Quan Dự Án
+
+Dự án này xây dựng một hệ thống tích hợp dữ liệu lai (**Hybrid Data Ingestion & Streaming ETL Platform**) phục vụ quản lý hợp đồng bảo hiểm. Hệ thống kết hợp hài hòa hai kênh dữ liệu khác biệt về bản chất:
+1. **Luồng trực tuyến thời gian thực (Online Real-time CDC)**: Tự động ghi nhận mọi sự kiện thay đổi dữ liệu (INSERT, UPDATE, DELETE) trên Database nguồn của hệ thống bán hàng.
+2. **Cổng tải lên ngoại tuyến (Offline Batch Ingestion Portal)**: Cho phép các đối tác hoặc quản trị viên upload trực tiếp file Excel báo cáo hợp đồng thô.
+
+Mục tiêu cốt lõi của hệ thống là tự động thu thập, kiểm tra trùng lặp chéo, chuẩn hóa và xây dựng kho dữ liệu phân tích tập trung (**Star Schema**) giúp doanh nghiệp có cái nhìn toàn diện và chính xác nhất về hoạt động kinh doanh.
+
+### Giao Diện Quản Lý Portal (Excel Upload UI)
+![Portal UI Landing Page](docs/images/landing_page.png)
+
+---
+
+## 🏗️ Kiến Trúc Hệ Thống & Luồng Dữ Liệu
+
+Kiến trúc hệ thống được đóng gói hoàn chỉnh bằng Docker Containers, đảm bảo luồng dữ liệu trơn tru từ nguồn đến tầng báo cáo.
+
+### Sơ Đồ Quy Trình Hoạt Động (Project Workflow)
+![Project Workflow](docs/images/project_workflow.png)
+
+### Chi Tiết Kênh Nạp & Biến Đổi Dữ Liệu
 ```mermaid
 flowchart TB
     subgraph "Kênh Trực Tuyến (Online CDC)"
@@ -66,146 +105,188 @@ flowchart TB
 
 ---
 
-## 📂 Cấu Trúc Dự Án (Monorepo Layout)
+## ✨ Điểm Nhấn Tính Năng
 
-Dự án đã được tái cấu trúc thành một Mono-repo hoàn chỉnh để dễ dàng quản lý và triển khai:
+### 1. Xử Lý Excel Bằng Design Patterns
+Portal Backend được viết bằng FastAPI áp dụng các mẫu thiết kế hướng đối tượng:
+*   **Factory Pattern (`ProcessorFactory`)**: Nhận diện loại bảo hiểm từ file tải lên để chọn bộ xử lý chuyên biệt.
+*   **Strategy Pattern (`IInsuranceProcessor`)**: Chuẩn hóa cấu trúc và kiểu dữ liệu độc lập cho từng nghiệp vụ (Xe máy, Xe ô tô, Sức khỏe, Du lịch...).
+*   **Template Method Pattern**: Cố định quy trình xử lý 4 bước: `parse_excel()` $\rightarrow$ `pre_process()` $\rightarrow$ `transform()` $\rightarrow$ `post_process()`.
+
+### 2. Cơ Chế Khử Trùng Lặp Chéo (SQL & dbt)
+Nhằm ngăn chặn dữ liệu tải lên thủ công (Offline Excel) ghi đè lên dữ liệu chính thống (Online CDC) theo nguyên tắc **Online Wins**:
+*   **Tại API (Staging Level)**: Portal Backend truy vấn trực tiếp cơ sở dữ liệu Staging để kiểm tra trùng lặp thông qua batch query. Nếu 7 trường nghiệp vụ cốt lõi trùng khớp, bản ghi sẽ bị loại ngay từ đầu.
+*   **Tại dbt (ELT Level)**: Model `int_contracts_deduped.sql` thực hiện phép `ROW_NUMBER() OVER (PARTITION BY 7_business_keys ORDER BY online_first)` để lọc trùng chéo chót chặn, ưu tiên dòng dữ liệu trực tuyến.
+
+7 Khóa nghiệp vụ cốt lõi:
+```
+{contractId} + {peopleName} + {majorName} + {companyProviderName} + {startDate} + {endDate} + {feeInsurance}
+```
+
+### 3. Trực Quan Hóa Trạng Thái Tải Lên Excel
+Hệ thống hiển thị trực quan các kịch bản kết quả xử lý dữ liệu khác nhau trên Portal UI:
+
+````carousel
+![Upload Thành Công](docs/images/successful_upload.png)
+<!-- slide -->
+![Upload Trùng Dữ Liệu](docs/images/duplicated_upload.png)
+<!-- slide -->
+![Upload Thất Bại Do Sai Định Dạng](docs/images/failed_upload.png)
+````
+
+---
+
+## 💻 Công Nghệ Sử Dụng
+
+### Giao Diện (Frontend)
+<div align="left">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" height="40" alt="react" />
+  <img width="8" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" height="40" alt="typescript" />
+  <img width="8" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/bootstrap/bootstrap-original.svg" height="40" alt="bootstrap" />
+</div>
+
+*   **React 18 & TypeScript**: Xây dựng UI hướng thành phần (Component-driven UI), quản lý trạng thái tải lên chặt chẽ.
+*   **Tailwind CSS & Vanilla CSS**: Đảm bảo giao diện hiện đại, responsive và trực quan.
+
+### Phân Tích & Phía Máy Chủ (Backend & Analytics)
+<div align="left">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" height="40" alt="python" />
+  <img width="8" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original.svg" height="40" alt="fastapi" />
+  <img width="8" />
+  <img src="https://cdn.simpleicons.org/sqlalchemy/d71f00" height="40" alt="sqlalchemy" />
+  <img width="8" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" height="40" alt="postgresql" />
+  <img width="8" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apachekafka/apachekafka-original.svg" height="40" alt="kafka" />
+  <img width="8" />
+  <img src="https://cdn.simpleicons.org/debezium/FF0000" height="40" alt="debezium" />
+  <img width="8" />
+  <img src="https://cdn.simpleicons.org/dbt/FF694B" height="40" alt="dbt" />
+  <img width="8" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" height="40" alt="docker" />
+</div>
+
+*   **FastAPI & SQLAlchemy ORM**: Tiếp nhận và xử lý file Excel dạng luồng bất đồng bộ.
+*   **Kafka & Debezium**: Theo dõi sự kiện thay đổi dữ liệu ở cơ sở dữ liệu nguồn trực tiếp.
+*   **dbt Core**: Thực hiện ELT gia tăng (Incremental models) chuẩn hóa dữ liệu sang Star Schema.
+*   **PostgreSQL 16**: Đóng vai trò là Production DB, Staging DB và Reporting Data Warehouse.
+
+---
+
+## 📂 Cấu Trúc Thư Mục
 
 ```
 hybrid-data-ingestion-platform/
 ├── configs/                     # Cấu hình đăng ký Debezium connectors
 ├── database/                    # SQL scripts khởi tạo các DB (Staging, Reporting)
-├── docs/                        # Tài liệu hệ thống chi tiết
-│   ├── portal/                  # Tài liệu hướng dẫn sử dụng và triển khai Portal
+├── docs/                        # Tài liệu đặc tả hệ thống & hướng dẫn
+│   ├── images/                  # Thư mục chứa hình ảnh giao diện & luồng hoạt động
 │   ├── PROJECT_FLOW.md          # Chi tiết luồng đi dữ liệu của hệ thống
 │   └── SYSTEM_WORKFLOW.md       # Sơ đồ và logic nghiệp vụ tổng thể
-├── services/                    # TẤT CẢ các dịch vụ chạy trong hệ thống
+├── services/                    # Các dịch vụ độc lập của hệ thống
 │   ├── cdc_consumer/            # Consumer đồng bộ DB Source -> DB Staging
-│   ├── dbt_analytics/           # Dự án dbt (Transformations, DWH, Data Marts)
-│   ├── shared/                  # Thư viện Python dùng chung (logger, db connection)
+│   ├── dbt_analytics/           # Project dbt (Transformations, DWH, Data Marts)
+│   ├── shared/                  # Thư viện Python dùng chung (logger, db connections)
 │   ├── portal_backend/          # FastAPI Backend tiếp nhận tệp Excel ngoại tuyến
-│   ├── portal_frontend/         # React + TypeScript Frontend cho người dùng
-│   ├── profiling/               # (Legacy) Consumer phân tích hành vi khách hàng
-│   └── streaming_etl/           # (Legacy) Consumer đồng bộ DB Staging -> DB Reporting
+│   └── portal_frontend/         # React + TypeScript Frontend cho người dùng
 ├── docker-compose.kafka.yml     # Quản lý Zookeeper, Kafka và Kafka-UI
 ├── docker-compose.debezium.yml  # Quản lý Debezium Connect và Debezium-UI
 ├── docker-compose.consumer.yml  # Quản lý CDC Consumer
 ├── docker-compose.scheduler.yml # Quản lý dbt Scheduler Daemon (Incremental sync)
 ├── docker-compose.portal.yml    # Quản lý Portal Frontend & Backend
-├── .gitignore                   # Cấu hình bỏ qua tệp tin rác chung ở root
 ├── .env.example                 # Mẫu cấu hình tham số môi trường
 └── README.md                    # Hướng dẫn chạy và tổng quan dự án (Tài liệu này)
 ```
 
 ---
 
-## ⚡ Điểm Nhấn Kỹ Thuật & Design Patterns
+## 🚀 Hướng Dẫn Khởi Chạy Nhanh
 
-### 1. OOP Design Patterns trong Portal Backend
-Để xử lý động nhiều biểu mẫu Excel bảo hiểm khác nhau (Sức khỏe, Xe cơ giới, Du lịch...), hệ thống áp dụng các mẫu thiết kế hướng đối tượng chặt chẽ:
-*   **Factory Pattern (`ProcessorFactory`)**: Tự động nhận diện loại bảo hiểm từ tên tệp hoặc yêu cầu của người dùng để khởi tạo processor phù hợp.
-*   **Strategy Pattern (`IInsuranceProcessor`)**: Quy định các phương thức chuẩn hóa và kiểm tra dữ liệu bắt buộc cho từng loại bảo hiểm.
-*   **Template Method Pattern**: Định nghĩa quy trình xử lý Excel gồm 4 bước cố định: `parse_excel()` $\rightarrow$ `pre_process()` $\rightarrow$ `transform()` $\rightarrow$ `post_process()`.
+### 📋 Yêu cầu tiên quyết
+*   Đã cài đặt **Docker** và **Docker Compose**.
+*   Một hệ cơ sở dữ liệu PostgreSQL đang chạy (hoặc dùng Docker).
 
-### 2. Double CDC Layer
-Hệ thống sử dụng **Debezium** để đọc log nhị phân (MySQL binlog) ở hai cấp độ riêng biệt, tách rời luồng dữ liệu thô (Source) khỏi luồng dữ liệu tổng hợp (Reporting) nhằm nâng cao hiệu năng và độ ổn định.
+### Bước 1: Sao chép tệp tham số môi trường
+1. Sao chép tệp mẫu cấu hình môi trường:
+   ```powershell
+   # Windows (PowerShell)
+   Copy-Item .env.example .env
+   
+   # macOS/Linux (Bash)
+   cp .env.example .env
+   ```
+2. Cập nhật các tham số cấu hình kết nối DB và Kafka phù hợp với máy của bạn.
 
-### 3. Cơ Chế Khử Trùng Lặp Chéo (SQL-based Deduplication)
-Nhằm ngăn chặn dữ liệu ngoại tuyến (Offline Excel) ghi đè lên dữ liệu trực tuyến (Online CDC) theo nguyên tắc **Online Wins**, hệ thống thực hiện kiểm tra và khử trùng lặp qua 7 khóa định danh nghiệp vụ bằng SQL trực tiếp ở tầng Staging (qua API backend) và dbt (qua model intermediate `int_contracts_deduped`):
-```
-contract:dedup:{contractId}:{name}:{majorName}:{companyProviderName}:{startDate}:{endDate}:{feeInsurance}
-```
-
----
-
-## 🚀 Hướng Dẫn Triển Khai (Deployment Guide)
-
-### 📋 Yêu cầu hệ thống
-*   Docker & Docker Compose (v2.x trở lên)
-*   Python 3.11 (nếu chạy local)
-*   Node.js 20+ (nếu chạy local)
-
-### Bước 1: Thiết Lập Tham Số Môi Trường
-Sao chép tệp cấu hình mẫu và chỉnh sửa các tham số kết nối cơ sở dữ liệu thực tế:
-```powershell
-cp .env.example .env
-```
-*(Cập nhật các giá trị như `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD` khớp với môi trường của bạn).*
-
----
-
-### Bước 2: Khởi Tạo Cơ Sở Dữ Liệu
-Chạy lần lượt các script SQL nằm trong thư mục `database/` để tạo các bảng lưu trữ cho Staging và Reporting:
-```powershell
-# 1. Tạo Database Staging và các bảng trực tuyến
-database\01_staging\01_create_staging_schema.sql
-
-# 2. Tạo bảng chứa dữ liệu Offline từ Excel
-database\01_staging\02_create_staging_offline_contract.sql
-
-# 3. Tạo bảng dữ liệu báo cáo tập trung (Wide Table) và phân tích hành vi
-database\02_reporting\02_create_contract_wide_table.sql
-database\02_reporting\create_profiling_analysis.sql
-```
-
----
-
-### Bước 3: Khởi Động Docker Infrastructure
-Tạo mạng Docker dùng chung và kích hoạt các dịch vụ cơ sở hạ tầng:
-```powershell
-# Tạo network dùng chung cho toàn bộ dự án
+### Bước 2: Tạo Mạng Docker Dùng Chung
+Khởi tạo mạng nội bộ dùng chung cho toàn bộ stack dự án:
+```bash
 docker network create cdc-network
+```
 
-# Khởi chạy Kafka, Zookeeper & Kafka-UI (Kafka: 9092, UI: 8080)
+### Bước 3: Khởi chạy cơ sở hạ tầng
+```bash
+# 1. Khởi chạy cơ sở dữ liệu (Nguồn & Đích)
+docker compose -f docker-compose.db.yml up -d
+
+# 2. Khởi chạy Kafka Cluster & UI
 docker compose -f docker-compose.kafka.yml up -d
 
-# Khởi chạy Debezium Connect & UI (Debezium: 8083, UI: 8084)
+# 3. Khởi chạy Debezium Connector
 docker compose -f docker-compose.debezium.yml up -d
 ```
-
----
+*Đợi khoảng 15-20 giây để các dịch vụ khởi động hoàn toàn.*
 
 ### Bước 4: Đăng Ký Debezium Connectors
-Đăng ký các tác vụ lắng nghe thay đổi MySQL binlog cho Debezium:
+Đẩy tệp cấu hình JSON đăng ký theo dõi thay đổi bảng lên Debezium:
 ```powershell
-# Đăng ký connector đọc dữ liệu từ database Source
+# Windows (PowerShell)
 Invoke-RestMethod -Uri "http://localhost:8083/connectors" `
   -Method Post `
   -ContentType "application/json" `
-  -Body (Get-Content register-source-connector.json -Raw)
-
-# Đăng ký connector đọc dữ liệu từ database Staging
-Invoke-RestMethod -Uri "http://localhost:8083/connectors" `
-  -Method Post `
-  -ContentType "application/json" `
-  -Body (Get-Content register-staging-connector.json -Raw)
+  -Body (Get-Content configs\register-source-connector.json -Raw)
 ```
 
----
-
-### Bước 5: Triển Khai các Consumers
-Khởi động các dịch vụ đồng bộ dữ liệu:
-```powershell
-# Khởi chạy CDC Consumer (Source -> Staging)
+### Bước 5: Chạy các Services & Portal
+```bash
+# 1. Khởi chạy CDC Consumer (Kafka -> Staging DB)
 docker compose -f docker-compose.consumer.yml up -d --build
 
-# Khởi chạy dbt Incremental Scheduler (Staging -> Warehouse & Mart)
+# 2. Khởi chạy dbt Scheduler (Chạy dbt transform định kỳ 5 phút)
 docker compose -f docker-compose.scheduler.yml up -d --build
+
+# 3. Khởi chạy Portal FE & BE
+docker compose -f docker-compose.portal.yml up -d --build
 ```
 
 ---
 
-### Bước 6: Khởi Động Cổng Portal Upload (Ngoại tuyến)
-Kích hoạt cổng Portal tiếp nhận Excel để đưa dữ liệu ngoại tuyến vào hệ thống Staging:
-```powershell
-# Khởi chạy Frontend React và Backend FastAPI
-docker compose -f docker-compose.portal.yml up -d --build
-```
-*   **Frontend Web UI**: [http://localhost:3010](http://localhost:3010)
-*   **Backend REST API**: [http://localhost:3011](http://localhost:3011)
-
-
-
 ## 🛠️ Hướng Dẫn Giám Sát & Logs
+
+Hệ thống cung cấp các giao diện trực quan cho nhà phát triển quản lý dữ liệu và luồng sự kiện:
 *   **Theo dõi logs hệ thống**: `docker compose -f docker-compose.<service>.yml logs -f`
-*   **Trực quan hóa Topic Kafka**: Truy cập [http://localhost:8080](http://localhost:8080)
-*   **Trực quan hóa Debezium Connectors**: Truy cập [http://localhost:8084](http://localhost:8084)
+*   **Giao Diện Quản Lý Kafka (Kafka-UI)**: Truy cập [http://localhost:8080](http://localhost:8080) để giám sát các topics, consumer groups.
+*   **Giao Diện Debezium (Debezium-UI)**: Truy cập [http://localhost:8084](http://localhost:8084) để kiểm tra trạng thái hoạt động của connectors.
+*   **Portal UI**: Truy cập [http://localhost:3010](http://localhost:3010) để thực hiện tải lên tệp Excel.
+*   **Portal Swagger Docs**: Xem mô tả và kiểm thử API tại [http://localhost:3011/docs](http://localhost:3011/docs).
+
+---
+
+## 🛠️ Xử Lý Sự Cố
+
+*   **Lỗi: `Debezium Connector không thể chạy (FAILED)`**
+    *   *Nguyên nhân:* Database nguồn (`insure_production`) chưa được kích hoạt chế độ ghi log WAL level sang `logical`.
+    *   *Khắc phục:* Thực thi câu lệnh SQL `ALTER SYSTEM SET wal_level = 'logical';` trên Database nguồn và khởi động lại DB.
+*   **Lỗi: `Consumer không nhận được tin nhắn từ Kafka`**
+    *   *Nguyên nhân:* Mạng `cdc-network` chưa khớp hoặc Kafka bootstrap server bị trỏ sai giữa môi trường container và localhost.
+    *   *Khắc phục:* Đảm bảo biến `KAFKA_BOOTSTRAP_SERVERS` trong `.env` luôn được cấu hình là `kafka:9093` đối với container và `localhost:9092` đối với các process chạy local trực tiếp trên máy chủ.
+*   **Đổi code local nhưng container không đổi?**
+    *   *Khắc phục:* Khởi chạy lại docker compose với flag build để biên dịch lại ảnh: `docker compose -f docker-compose.<name>.yml up -d --build`.
+
+---
+
+<div>
+  <img style="width: 100%" src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer&reversal=true&text=Build%20it%20clean%20%E2%80%A2%20Ship%20it%20reliable&fontSize=22&fontColor=ffffff&fontAlign=50&fontAlignY=50&rotate=0&stroke=-&animation=twinkling&textBg=false&color=gradient" />
+</div>
