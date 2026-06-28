@@ -1,156 +1,156 @@
-# Hướng Dẫn Thiết Kế Workflow Hệ Thống Chuyên Nghiệp (Excalidraw Redesign Guide)
+# Professional System Workflow Design Guide (Excalidraw Redesign Guide)
 
-Tài liệu này cung cấp các nguyên tắc thiết kế, bảng màu, cách tích hợp icon công nghệ và nội dung chi tiết để bạn có thể tự thiết kế lại file `WORKFLOW.excalidraw` từ dạng **hộp chữ đơn giản (Hình 1)** thành một **sơ đồ kiến trúc doanh nghiệp chuẩn mực và trực quan (như ví dụ ở Hình 2)**.
-
----
-
-## 🎨 1. Nguyên Tắc Thiết Kế Trực Quan (Visual Design Principles)
-
-Để sơ đồ trông sạch sẽ, hiện đại và chuẩn "Enterprise Architecture", hãy tuân thủ các quy tắc sau trong Excalidraw:
-
-### A. Font Chữ & Phân Cấp Nội Dung (Typography & Hierarchy)
-*   **Font Family**: Đổi toàn bộ text từ dạng mặc định (Handwritten) sang **Sans-serif (Regular/Normal)**. Sơ đồ kỹ thuật tuyệt đối không dùng nét chữ viết tay để đảm bảo tính chuyên nghiệp.
-*   **Kích thước chữ**:
-    *   **Tiêu đề phân vùng (Group/Frame)**: `20px` hoặc `24px` (Bold, màu xám đậm `#495057`).
-    *   **Tên Component/Công nghệ**: `16px` (Bold, màu đen `#212529` hoặc trắng nếu nền tối).
-    *   **Mô tả chi tiết/Tham số**: `12px` (Normal, màu xám `#6c757d` hoặc nhạt hơn).
-    *   **Nhãn mũi tên luồng (Arrow Label)**: `11px` (Normal hoặc Italic, màu xám đậm).
-
-### B. Cấu Trúc Khung Phân Vùng (Bounding Boxes / Frames)
-*   Sử dụng các khung chữ nhật lớn với **nét đứt (dashed stroke)** và **góc bo tròn (rounded corners)** để gom nhóm các pipeline.
-*   **Màu nền của Khung**: Đặt độ mờ (Opacity) khoảng `5% - 10%` để tạo chiều sâu mà không làm mờ các component bên trong.
-    *   *Ví dụ*: Phân vùng Online dùng nền màu xanh lam nhạt, Phân vùng Offline dùng nền hồng nhạt, Phân vùng Transformation dùng nền cam nhạt.
-
-### C. Mũi Tên Chỉ Luồng (Connectors)
-*   Sử dụng mũi tên **thẳng (straight)** hoặc **vuông góc (elbow/orthogonal)** thay vì mũi tên cong tự do.
-*   **Độ dày nét**: `1px` hoặc `1.5px`.
-*   **Kiểu nét**:
-    *   `Nét liền (Solid)`: Thể hiện dòng chảy dữ liệu trực tiếp (Data Ingestion, Write, Materialize).
-    *   `Nét đứt (Dashed)`: Thể hiện các hoạt động đọc/kiểm tra phụ trợ (Deduplication Check, API Call, Trigger).
+This document outlines the design principles, color palettes, tech icon integrations, and detailed structural content to help you redesign the `WORKFLOW.excalidraw` file from a simple text box diagram into a professional and visually rich enterprise architecture diagram.
 
 ---
 
-## 💾 2. Bảng Màu Hệ Thống & Bộ Icon Kỹ Thuật (Color Palette & SVGs)
+## 1. Visual Design Principles
 
-Tránh sử dụng các màu mặc định chói mắt (như đỏ nguyên bản, xanh lá nguyên bản). Hãy dùng các mã màu thương hiệu đã được căn chỉnh tinh tế sau đây:
+To ensure your architecture diagram looks clean, modern, and matches enterprise standards, follow these guidelines in Excalidraw:
 
-| Công Nghệ / Vai Trò | Mã Màu Hex gợi ý | Icon đề xuất |
+### A. Typography & Content Hierarchy
+- **Font Family**: Change all text elements from the default (Handwritten) style to **Sans-serif (Regular/Normal)**. Hand-drawn fonts should be avoided in technical diagrams to maintain a professional look.
+- **Font Sizes**:
+    - **Zone Titles (Group/Frame)**: `20px` or `24px` (Bold, Dark Gray `#495057`).
+    - **Component/Technology Names**: `16px` (Bold, Black `#212529` or White if placed on dark backgrounds).
+    - **Descriptions/Parameters**: `12px` (Normal, Gray `#6c757d` or lighter).
+    - **Arrow Labels**: `11px` (Normal or Italic, Dark Gray).
+
+### B. Grouping/Frame Bounding Boxes
+- Use large rectangular boxes with **dashed strokes** and **rounded corners** to group different pipelines.
+- **Background Fill**: Set the opacity to `5% - 10%` to add subtle depth without obscuring components.
+    - *Example*: Online CDC pipeline uses a light blue background, Offline uses a light pink background, and Transformation uses a light orange background.
+
+### C. Flow Connectors/Arrows
+- Use **straight** or **orthogonal (elbow)** arrows instead of freeform curved lines.
+- **Stroke Width**: `1px` or `1.5px`.
+- **Stroke Style**:
+    - `Solid`: Represents direct data streams (Data Ingestion, Writes, Materializations).
+    - `Dashed`: Represents auxiliary check operations (Deduplication checks, API calls, Triggers).
+
+---
+
+## 2. System Color Palette & Technical Icons
+
+Avoid using bright default colors (like pure red or pure green). Instead, use these calibrated brand color codes:
+
+| Technology / Role | Proposed Hex Color | Recommended Icon |
 | :--- | :--- | :--- |
-| **PostgreSQL** (Source & Staging) | `#336791` (Slate Blue) | Logo PostgreSQL (Con voi xanh) |
-| **Debezium** (CDC Connector) | `#ff6b6b` (Soft Red) | Logo Debezium hoặc Icon bánh răng/tia sét |
-| **Apache Kafka** (Event Broker) | `#231f20` (Dark Charcoal) | Logo Apache Kafka |
-| **Python** (CDC & ETL Consumers)| `#3776ab` (Python Blue) | Logo Python |
-| **React** (Portal Frontend) | `#61dafb` (Cyan) | Logo React (Vòng xoáy nguyên tử) |
-| **FastAPI** (Portal Backend) | `#009688` (Teal) | Logo FastAPI (Tia sét màu xanh teal) |
-| **dbt** (Dimensional Modeling) | `#ff6b4a` (Orange) | Logo dbt (Hình khối cam) |
-| **Docker** (Infrastructure) | `#2496ed` (Whale Blue) | Logo Docker (Chú cá voi xanh) |
+| **PostgreSQL** (Source & Staging) | `#336791` (Slate Blue) | PostgreSQL Logo |
+| **Debezium** (CDC Connector) | `#ff6b6b` (Soft Red) | Debezium Logo / Gear or Bolt icon |
+| **Apache Kafka** (Event Broker) | `#231f20` (Dark Charcoal) | Apache Kafka Logo |
+| **Python** (CDC & ETL Consumers)| `#3776ab` (Python Blue) | Python Logo |
+| **React** (Portal Frontend) | `#61dafb` (Cyan) | React Logo |
+| **FastAPI** (Portal Backend) | `#009688` (Teal) | FastAPI Logo |
+| **dbt** (Dimensional Modeling) | `#ff6b4a` (Orange) | dbt Logo |
+| **Docker** (Infrastructure) | `#2496ed` (Whale Blue) | Docker Logo |
 
-### 🛠️ Cách đưa Icon SVG chuyên nghiệp vào Excalidraw:
-1.  Truy cập các trang web logo vector miễn phí như [Simple Icons](https://simpleicons.org/) hoặc [Vector Logo Zone](https://www.vectorlogo.zone/).
-2.  Tìm kiếm logo tương ứng (ví dụ: `PostgreSQL`, `Kafka`, `FastAPI`, `React`, `dbt`, `Docker`).
-3.  Tải file **SVG** về máy tính của bạn.
-4.  **Kéo thả trực tiếp** file SVG vừa tải vào khung làm việc của Excalidraw. 
-5.  Co giãn icon về kích thước chuẩn (khuyên dùng khoảng **`48x48 px`** hoặc **`60x60 px`**) để tạo sự đồng bộ.
-
----
-
-## 📑 3. Nội Dung Chi Tiết Từng Thành Phần (Step-by-Step Component Details)
-
-Để sơ đồ của bạn không chỉ đẹp mà còn giàu thông tin (như hình 2), hãy thay thế các text box ngắn cũn bằng cấu trúc mô tả chi tiết dưới đây:
-
-### 🌐 Phân Vùng 1: Online CDC Pipeline (Kênh Trực Tuyến)
-*Khung bao ngoài: Nét đứt màu xanh dương nhạt. Nền xanh mờ.*
-
-1.  **Icon PostgreSQL (Source DB)**:
-    *   **Tiêu đề**: `Production DB`
-    *   **Chi tiết**: `PostgreSQL (insuranceSale)`
-    *   **Nhiệm vụ**: Lưu trữ giao dịch trực tuyến thời gian thực.
-2.  **Icon Debezium (PostgreSQL Connector)**:
-    *   **Tiêu đề**: `Debezium Connector`
-    *   **Chi tiết**: `WAL Logical Replication`
-    *   **Nhiệm vụ**: Đọc Write-Ahead Log (WAL) không gây khóa bảng.
-3.  **Icon Apache Kafka (Kafka Broker)**:
-    *   **Tiêu đề**: `Kafka Topics`
-    *   **Chi tiết**: `source.public.* (Port 9092)`
-    *   **Nhiệm vụ**: Lưu trữ hàng đợi sự kiện (CDC Events) dưới dạng pub/sub.
-4.  **Icon Python (CDC Consumer)**:
-    *   **Tiêu đề**: `CDC Consumer`
-    *   **Chi tiết**: `Python Async Consumer`
-    *   **Nhiệm vụ**: Lắng nghe Kafka $\rightarrow$ UPSERT dữ liệu thô vào các bảng Staging riêng biệt (`stgInsuranceContractObjectVehicle`, `stgInsuranceContractObjectTravel`, etc.).
+### How to import professional SVG Icons into Excalidraw:
+1. Visit free vector logo sites such as [Simple Icons](https://simpleicons.org/) or [Vector Logo Zone](https://www.vectorlogo.zone/).
+2. Search for the respective logos (e.g., `PostgreSQL`, `Kafka`, `FastAPI`, `React`, `dbt`, `Docker`).
+3. Download the **SVG** files.
+4. **Drag and drop** the downloaded SVG files directly onto your Excalidraw canvas.
+5. Resize the icons to a uniform dimension (recommended: **`48x48 px`** or **`60x60 px`**).
 
 ---
 
-### 📥 Phân Vùng 2: Offline Ingestion Pipeline (Kênh Ngoại Tuyến)
-*Khung bao ngoài: Nét đứt màu hồng nhạt. Nền hồng mờ.*
+## 3. Detailed Component Attributes (Step-by-Step)
 
-1.  **Icon Excel / Document**:
-    *   **Tiêu đề**: `Partner Excel File`
-    *   **Chi tiết**: `Hợp đồng bảo hiểm đối tác (Travel, Moto, Health, Medical...)`
-2.  **Icon React (Vite)**:
-    *   **Tiêu đề**: `Portal Frontend`
-    *   **Chi tiết**: `React 18 + Vite (Port 3010)`
-    *   **Nhiệm vụ**: UI cho quản trị viên đăng nhập và tải lên file Excel.
-3.  **Icon FastAPI**:
-    *   **Tiêu đề**: `Portal Backend`
-    *   **Chi tiết**: `FastAPI REST API (Port 3011)`
-    *   **Nhiệm vụ**: Áp dụng **Factory & Template Method Patterns** để phân loại và xử lý file Excel động. Thực hiện check trùng lặp nội bộ (Deduplication Check) trực tiếp trên bảng `stgInsuranceContractObjectOffline`.
+To make your diagram highly informative, replace short labels with the structured descriptions below:
 
----
+### Zone 1: Online CDC Pipeline (Real-Time Ingestion)
+*Outer Frame: Light blue dashed border, faint blue background.*
 
-### 🗄️ Phân Vùng 3: Staging Layer (Vùng Đệm)
-*Vị trí: Điểm hội tụ vật lý của luồng dữ liệu.*
-
-1.  **Bảng Staging Online (PostgreSQL - Multiple Tables)**:
-    *   **Tiêu đề**: `Online Staging Tables`
-    *   **Chi tiết**: `stgInsuranceContractObjectVehicle`, `stgInsuranceContractObjectTravel`...
-    *   **Nhiệm vụ**: Lưu trữ dữ liệu thô trực tiếp từ CDC.
-2.  **Bảng Staging Offline (PostgreSQL - Single Table)**:
-    *   **Tiêu đề**: `Offline Staging Table`
-    *   **Chi tiết**: `stgInsuranceContractObjectOffline`
-    *   **Nhiệm vụ**: Lưu trữ dữ liệu thô tải lên từ file Excel.
+1. **PostgreSQL Icon (Source DB)**:
+    - **Title**: `Production DB`
+    - **Details**: `PostgreSQL (insuranceSale)`
+    - **Role**: Stores real-time online transaction records.
+2. **Debezium Icon (PostgreSQL Connector)**:
+    - **Title**: `Debezium Connector`
+    - **Details**: `WAL Logical Replication`
+    - **Role**: Reads the Write-Ahead Log (WAL) asynchronously without locking tables.
+3. **Apache Kafka Icon (Kafka Broker)**:
+    - **Title**: `Kafka Topics`
+    - **Details**: `source.public.* (Port 9092)`
+    - **Role**: Buffers and queues events (CDC events) in a pub/sub model.
+4. **Python Icon (CDC Consumer)**:
+    - **Title**: `CDC Consumer`
+    - **Details**: `Python Async Consumer`
+    - **Role**: Consumes Kafka events $\rightarrow$ UPSERTs raw data into target Staging tables (`stgInsuranceContractObjectVehicle`, `stgInsuranceContractObjectTravel`, etc.).
 
 ---
 
-### 🏗️ Phân Vùng 4: ELT & Dimensional Modeling (Tầng Biến Đổi dbt)
-*Khung bao ngoài: Nét đứt màu cam nhạt. Nền cam mờ. Đây chính là nơi xử lý loại bỏ trùng lặp chéo giữa Online và Offline.*
+### Zone 2: Offline Ingestion Pipeline (Batch Upload)
+*Outer Frame: Light pink dashed border, faint pink background.*
 
-1.  **Icon Python (Scheduler Daemon)**:
-    *   **Tiêu đề**: `dbt Scheduler`
-    *   **Chi tiết**: `Incremental cron-job (Mỗi 5 phút)`
-    *   **Nhiệm vụ**: Kích hoạt dbt biến đổi dữ liệu gia tăng.
-2.  **Icon dbt (Staging Models)**:
-    *   **Tiêu đề**: `Staging Layer`
-    *   **Chi tiết**: `stg_contracts, stg_claims, stg_contract_objects_offline`
-    *   **Nhiệm vụ**: Clean kiểu dữ liệu, chuẩn hóa cột sang tiếng Anh.
-3.  **Icon dbt (Intermediate Models - Khử trùng chéo)**:
-    *   **Tiêu đề**: `Intermediate Layer`
-    *   **Chi tiết**: `int_contracts_joined, int_contracts_deduped`
-    *   **Nhiệm vụ**: 
-        *   `int_contracts_joined`: `UNION ALL` dữ liệu Online và Offline.
-        *   `int_contracts_deduped`: Khử trùng chéo giữa 2 kênh qua 7 Business Keys bằng phép `ROW_NUMBER()` với thứ tự ưu tiên **"Online Wins"** (`CASE WHEN source_type = 'online' THEN 1 ELSE 2 END ASC`).
-4.  **Nhóm các Bảng Chiều (Dimensions) - Nền màu xanh lá nhạt**:
-    *   `dim_date`: Khởi tạo tĩnh 4,018 dòng phân tích thời gian.
-    *   `dim_customer`: Thông tin người mua bảo hiểm.
-    *   `dim_insured_person`: Thông tin người được bảo hiểm (chứa logic giải mã tỉnh thành/quan hệ).
-    *   `dim_product` + `dim_sales_channel`: Gói sản phẩm và kênh phân phối.
-5.  **Nhóm các Bảng Sự Kiện (Facts) - Nền màu xanh lá nhạt**:
-    *   `fct_contracts`: Lưu trữ chi tiết giao dịch hợp đồng theo grain hạt mịn.
-    *   `fct_claims`: Các sự kiện yêu cầu bồi thường (chẩn đoán y khoa, thời gian xử lý).
-6.  **Nhóm Tầng Báo Cáo (Data Marts) - Nền màu xanh lá nhạt đậm**:
-    *   `dm_profiling_analysis`: Claim Profiling (Sẵn sàng cho BI/Tableau/PowerBI).
-    *   `dm_contract_summary`: Doanh thu và số lượng hợp đồng (Sẵn sàng cho BI).
+1. **Excel/Document Icon**:
+    - **Title**: `Partner Excel File`
+    - **Details**: `Partner insurance contracts (Travel, Moto, Health, Medical...)`
+2. **React Icon (Vite)**:
+    - **Title**: `Portal Frontend`
+    - **Details**: `React 18 + Vite (Port 3010)`
+    - **Role**: Admin dashboard to log in and upload Excel reports.
+3. **FastAPI Icon**:
+    - **Title**: `Portal Backend`
+    - **Details**: `FastAPI REST API (Port 3011)`
+    - **Role**: Uses **Factory & Template Method Patterns** to dynamically parse Excel structures. Performs internal duplicate checks directly against PostgreSQL Staging tables.
 
 ---
 
-## 📐 4. Gợi Ý Bố Cục Tổng Thế (Recommended Layout Grid)
+### Zone 3: Staging Layer (Landing Area)
+*Position: Physical convergence point of both pipelines.*
 
-Để sơ đồ của bạn gọn gàng như Hình 2, hãy áp dụng bố cục **từ trái qua phải (Left-to-Right Flow)** kết hợp với phân lớp **từ trên xuống dưới**:
+1. **Online Staging (PostgreSQL - Multiple Tables)**:
+    - **Title**: `Online Staging Tables`
+    - **Details**: `stgInsuranceContractObjectVehicle`, `stgInsuranceContractObjectTravel`...
+    - **Role**: Holds raw data ingested via real-time CDC.
+2. **Offline Staging (PostgreSQL - Single Table)**:
+    - **Title**: `Offline Staging Table`
+    - **Details**: `stgInsuranceContractObjectOffline`
+    - **Role**: Holds raw data ingested via Excel uploads.
+
+---
+
+### Zone 4: ELT & Dimensional Modeling (dbt Transformation)
+*Outer Frame: Light orange dashed border, faint orange background. This layer executes cross-channel deduplication.*
+
+1. **Python Icon (Scheduler Daemon)**:
+    - **Title**: `dbt Scheduler`
+    - **Details**: `Incremental cron-job (Every 5 minutes)`
+    - **Role**: Triggers periodic dbt execution.
+2. **dbt Icon (Staging Models)**:
+    - **Title**: `Staging Layer`
+    - **Details**: `stg_contracts, stg_claims, stg_contract_objects_offline`
+    - **Role**: Cleans data types and standardizes columns into English.
+3. **dbt Icon (Intermediate Models - Cross-Deduplication)**:
+    - **Title**: `Intermediate Layer`
+    - **Details**: `int_contracts_joined, int_contracts_deduped`
+    - **Role**:
+        - `int_contracts_joined`: Performs a `UNION ALL` of Online and Offline sources.
+        - `int_contracts_deduped`: Filters cross-channel duplicates using a 7 Business Keys match, implementing the **"Online Wins"** rule (`CASE WHEN source_type = 'online' THEN 1 ELSE 2 END ASC`).
+4. **Dimension Tables Group - Light Green background**:
+    - `dim_date`: Static calendar mapping 4,018 dates for time intelligence.
+    - `dim_customer`: Buyer profile dimension.
+    - `dim_insured_person`: Insured target profiles (incorporates decoded city codes and relationships).
+    - `dim_product` + `dim_sales_channel`: Product details and sales channels.
+5. **Fact Tables Group - Light Green background**:
+    - `fct_contracts`: Contract transaction details at granular grain.
+    - `fct_claims`: Insurance claim logs (processing duration, medical category).
+6. **Data Marts Group - Deeper Green background**:
+    - `dm_profiling_analysis`: Customer claims profiling (BI-ready).
+    - `dm_contract_summary`: Overall sales performance and contract summary (BI-ready).
+
+---
+
+## 4. Recommended Layout Grid
+
+To maintain a logical layout, design a **Left-to-Right Flow** combined with top-down source segregation:
 
 ```
-[ KÊNH ONLINE CDC ] ────────► [ ONLINE STAGING TABLES ] ───┐
-                                                            ├─► [ UNION & DEDUP (dbt) ] ──► [ STAR SCHEMA ] ──► [ DATA MARTS ]
-[ KÊNH OFFLINE EXCEL ] ──────► [ OFFLINE STAGING TABLE ] ──┘
+[ ONLINE CDC CHANNEL ] ────────► [ ONLINE STAGING TABLES ] ───┐
+                                                              ├─► [ UNION & DEDUP (dbt) ] ──► [ STAR SCHEMA ] ──► [ DATA MARTS ]
+[ OFFLINE EXCEL CHANNEL ] ────► [ OFFLINE STAGING TABLE ] ────┘
 ```
 
-*   **Tỷ lệ khoảng cách**: Giữ khoảng cách giữa các component tối thiểu `60px` để vẽ mũi tên luồng và nhãn giải thích không bị chồng chéo lên nhau.
-*   **Docker Containerization**: Bạn có thể vẽ thêm một đường bao ngoài mờ nhất (Opacity 3%) bao phủ toàn bộ sơ đồ với **Icon Docker** ở góc trên cùng bên phải để thể hiện toàn bộ hệ thống được đóng gói bằng Docker Containers, mang lại cái nhìn cực kỳ trực quan và cao cấp.
+- **Spacing**: Keep at least `60px` between components to allow room for connector labels and avoid visual clutter.
+- **Docker Containerization**: You can draw a very light container boundary (Opacity 3%) around the entire diagram with a **Docker Icon** in the top-right corner to indicate that all services are fully containerized under Docker.

@@ -1,0 +1,261 @@
+version: 2
+
+models:
+  # ============================================================================
+  # STAGING — Contract Master
+  # ============================================================================
+  - name: stg_contracts
+    description: >
+      Cleaned insurance contract master records from the online production
+      database. Standardizes phone numbers, trims whitespace, and resolves
+      timestamp anomalies where modifiedAt precedes createdAt.
+    columns:
+      - name: contract_id
+        description: "Primary business key — unique contract identifier"
+        tests:
+          - unique
+          - not_null
+      - name: buyer_name
+        tests:
+          - not_null
+      - name: contract_type
+        tests:
+          - not_null
+      - name: created_at
+        tests:
+          - not_null
+
+  # ============================================================================
+  # STAGING — Claims
+  # ============================================================================
+  - name: stg_claims
+    description: >
+      Cleaned insurance claim records. Standardizes claimant contact info,
+      trims diagnostic text, and resolves timestamp anomalies.
+    columns:
+      - name: claim_id
+        description: "Primary key — unique claim identifier"
+        tests:
+          - unique
+          - not_null
+      - name: contract_object_id
+        description: "Foreign key to the insured contract object"
+        tests:
+          - not_null
+      - name: status
+        description: "Claim processing status"
+        tests:
+          - not_null
+      - name: created_at
+        tests:
+          - not_null
+
+  # ============================================================================
+  # STAGING — Contract Objects (Online: per insurance type)
+  # Each online staging model outputs a unified column schema for UNION ALL
+  # in the intermediate layer.
+  # ============================================================================
+  - name: stg_contract_objects_vehicle
+    description: "Online vehicle insurance contract objects"
+    columns:
+      - name: contract_object_id
+        tests:
+          - unique
+          - not_null
+      - name: contract_id
+        tests:
+          - not_null
+      - name: insurance_type
+        tests:
+          - accepted_values:
+              values: ['VEHICLE']
+      - name: source_type
+        tests:
+          - accepted_values:
+              values: ['online']
+      - name: people_name
+        tests:
+          - not_null
+      - name: fee_insurance
+        tests:
+          - not_null
+
+  - name: stg_contract_objects_travel
+    description: "Online travel insurance contract objects"
+    columns:
+      - name: contract_object_id
+        tests:
+          - unique
+          - not_null
+      - name: contract_id
+        tests:
+          - not_null
+      - name: insurance_type
+        tests:
+          - accepted_values:
+              values: ['TRAVEL']
+      - name: source_type
+        tests:
+          - accepted_values:
+              values: ['online']
+      - name: people_name
+        tests:
+          - not_null
+      - name: fee_insurance
+        tests:
+          - not_null
+
+  - name: stg_contract_objects_moto
+    description: "Online motorcycle insurance contract objects"
+    columns:
+      - name: contract_object_id
+        tests:
+          - unique
+          - not_null
+      - name: contract_id
+        tests:
+          - not_null
+      - name: insurance_type
+        tests:
+          - accepted_values:
+              values: ['MOTO']
+      - name: source_type
+        tests:
+          - accepted_values:
+              values: ['online']
+      - name: people_name
+        tests:
+          - not_null
+      - name: fee_insurance
+        tests:
+          - not_null
+
+  - name: stg_contract_objects_health
+    description: "Online health insurance contract objects"
+    columns:
+      - name: contract_object_id
+        tests:
+          - unique
+          - not_null
+      - name: contract_id
+        tests:
+          - not_null
+      - name: insurance_type
+        tests:
+          - accepted_values:
+              values: ['HEALTH']
+      - name: source_type
+        tests:
+          - accepted_values:
+              values: ['online']
+      - name: people_name
+        tests:
+          - not_null
+      - name: fee_insurance
+        tests:
+          - not_null
+
+  - name: stg_contract_objects_social
+    description: "Online social insurance contract objects"
+    columns:
+      - name: contract_object_id
+        tests:
+          - unique
+          - not_null
+      - name: contract_id
+        tests:
+          - not_null
+      - name: insurance_type
+        tests:
+          - accepted_values:
+              values: ['SOCIAL']
+      - name: source_type
+        tests:
+          - accepted_values:
+              values: ['online']
+      - name: people_name
+        tests:
+          - not_null
+      - name: fee_insurance
+        tests:
+          - not_null
+
+  - name: stg_contract_objects_medical
+    description: "Online medical insurance contract objects"
+    columns:
+      - name: contract_object_id
+        tests:
+          - unique
+          - not_null
+      - name: contract_id
+        tests:
+          - not_null
+      - name: insurance_type
+        tests:
+          - accepted_values:
+              values: ['MEDICAL']
+      - name: source_type
+        tests:
+          - accepted_values:
+              values: ['online']
+      - name: people_name
+        tests:
+          - not_null
+      - name: fee_insurance
+        tests:
+          - not_null
+
+  - name: stg_contract_objects_house
+    description: "Online house/property insurance contract objects"
+    columns:
+      - name: contract_object_id
+        tests:
+          - unique
+          - not_null
+      - name: contract_id
+        tests:
+          - not_null
+      - name: insurance_type
+        tests:
+          - accepted_values:
+              values: ['HOUSE']
+      - name: source_type
+        tests:
+          - accepted_values:
+              values: ['online']
+      - name: people_name
+        tests:
+          - not_null
+      - name: fee_insurance
+        tests:
+          - not_null
+
+  # ============================================================================
+  # STAGING — Contract Objects (Offline: all types in single table)
+  # ============================================================================
+  - name: stg_contract_objects_offline
+    description: >
+      Offline contract objects uploaded via the Portal (Excel).
+      All insurance types are stored in a single staging table.
+    columns:
+      - name: contract_object_id
+        tests:
+          - unique
+          - not_null
+      - name: contract_id
+        tests:
+          - not_null
+      - name: insurance_type
+        description: "Insurance type derived from the uploaded file"
+        tests:
+          - not_null
+      - name: source_type
+        tests:
+          - accepted_values:
+              values: ['offline']
+      - name: people_name
+        tests:
+          - not_null
+      - name: fee_insurance
+        tests:
+          - not_null

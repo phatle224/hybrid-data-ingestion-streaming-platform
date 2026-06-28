@@ -1,0 +1,82 @@
+# ============================================================================
+# Docker Compose for Monitoring Stack (Prometheus + Grafana)
+# Usage: docker-compose -f docker-compose.monitoring.yml up -d
+# Provides observability into Kafka consumer lag, PostgreSQL stats,
+# and general infrastructure health.
+# ============================================================================
+
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: cdc_prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+    networks:
+      - cdc-network
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: cdc_grafana
+    restart: always
+    ports:
+      - "3030:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/cdc-overview.json
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - cdc-network
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: cdc_kafka_exporter
+    restart: always
+    ports:
+      - "9308:9308"
+    command:
+      - '--kafka.server=kafka:9093'
+      - '--group.filter=.*'
+      - '--topic.filter=source.*'
+    depends_on:
+      - prometheus
+    networks:
+      - cdc-network
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: cdc_postgres_exporter
+    restart: always
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@${DB_HOST:-host.docker.internal}:5433/insuranceWarehouse?sslmode=disable"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - prometheus
+    networks:
+      - cdc-network
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  cdc-network:
+    name: cdc-network
+    external: true

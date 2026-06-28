@@ -3,14 +3,37 @@ version: 2
 sources:
   - name: staging_db
     schema: staging
+    description: >
+      Raw staging tables populated by the CDC Consumer (online channel)
+      and Portal Backend (offline Excel uploads).
     tables:
       - name: stgInsuranceContract
+        description: "Master contract records from online CDC"
+        columns:
+          - name: '"contractId"'
+            tests:
+              - unique
+              - not_null
       - name: stgInsuranceContractObject
+        description: "Health insurance contract objects (online)"
       - name: stgInsuranceContractObjectVehicle
+        description: "Vehicle insurance contract objects (online)"
       - name: stgInsuranceContractObjectTravel
+        description: "Travel insurance contract objects (online)"
       - name: stgInsuranceContractObjectMoto
+        description: "Motorcycle insurance contract objects (online)"
       - name: stgInsuranceContractObjectSocialInsurance
+        description: "Social insurance contract objects (online)"
       - name: stgInsuranceContractObjectMedicalInsurance
+        description: "Medical insurance contract objects (online)"
       - name: stgInsuranceContractObjectHouse
+        description: "House/property insurance contract objects (online)"
       - name: stgInsuranceContractObjectOffline
+        description: "All offline contract objects uploaded via Excel"
       - name: stgInsuranceClaim
+        description: "Insurance claim records from online CDC"
+        columns:
+          - name: '"id"'
+            tests:
+              - unique
+              - not_null

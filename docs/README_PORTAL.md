@@ -1,16 +1,16 @@
-# CDC Portal Upload - Project Overview
+# CDC Portal Ingestion Service
 
-## Giới Thiệu
+## Introduction
 
-Hệ thống upload và xử lý file Excel hợp đồng bảo hiểm với tính năng duplicate checking thông minh.
+An insurance contract Excel file upload and processing system featuring intelligent duplicate checking.
 
 **Features:**
-- 📁 Upload file Excel (.xlsx, .xls)  
-- 🔍 Auto-detect loại bảo hiểm từ filename
-- ✨ Transform data theo mapping chuẩn
-- 🎯 Check duplicate bằng 4 business keys
-- 💾 Insert database chỉ records mới
-- 📊 Report chi tiết (total, new, duplicates)
+- Upload Excel files (.xlsx, .xls)  
+- Auto-detect insurance type from the filename
+- Transform data according to standard mappings
+- Perform duplicate checks using 7 business keys
+- Insert only new records into the database
+- Display detailed report metrics (total, new, duplicates)
 
 ---
 
@@ -20,12 +20,12 @@ Hệ thống upload và xử lý file Excel hợp đồng bảo hiểm với tí
 - FastAPI (Python 3.11)
 - Pandas (Excel processing)
 - SQLAlchemy (ORM)
-- MySQL/Oracle Database
+- PostgreSQL Database
 
 **Frontend:**
 - React + TypeScript
 - Vite (Build tool)
-- Nginx (Production server)
+- Nginx (Production web server)
 
 **Deployment:**
 - Docker & Docker Compose
@@ -41,7 +41,7 @@ services/
 │   ├── configs/
 │   │   ├── app/settings.py              # App config
 │   │   ├── database/db_config.py        # Database config
-│   │   └── mappings/                    # Column mappings cho từng loại BH
+│   │   └── mappings/                    # Column mappings for each insurance type
 │   │       ├── travel_mapping.py
 │   │       ├── vehicle_mapping.py
 │   │       └── ...
@@ -53,7 +53,7 @@ services/
 │   │   └── upload_routes.py             # API endpoints
 │   ├── services/
 │   │   ├── excel_service.py             # Factory Pattern
-│   │   ├── duplicate_service.py         # ⭐ Duplicate check logic
+│   │   ├── duplicate_service.py         # Duplicate check logic
 │   │   └── processors/                  # Strategy Pattern
 │   │       ├── base_processor.py        # Interface
 │   │       ├── travel_processor.py
@@ -77,9 +77,9 @@ services/
 
 ## Quick Start
 
-### 1. Cấu hình Database
+### 1. Database Configuration
 
-Sửa `services/portal_backend/configs/database/db_config.py`:
+Edit `services/portal_backend/configs/database/db_config.py`:
 ```python
 DB_HOST = "localhost"
 DB_USER = "postgres"
@@ -87,20 +87,20 @@ DB_PASSWORD = "your_password"
 DB_NAME = "insuranceWarehouse"
 ```
 
-### 2. Deploy với Docker
+### 2. Deploy with Docker
 
 ```powershell
-# Tạo network nếu chưa tạo
+# Create network if not already created
 docker network create cdc-network
 
-# Build và start
+# Build and start services
 docker compose -f docker-compose.portal.yml up -d --build
 
-# Xem logs
+# View container logs
 docker compose -f docker-compose.portal.yml logs -f
 ```
 
-### 3. Access Application
+### 3. Accessing the Application
 
 - **Frontend**: http://localhost:3010
 - **Backend API**: http://localhost:3011
@@ -142,45 +142,48 @@ curl -X POST http://localhost:3011/api/upload/excel \
 
 ---
 
-## Loại Bảo Hiểm Hỗ Trợ
+## Supported Insurance Types
 
-| Loại | Key | Filename Pattern |
+| Type | Key | Filename Pattern |
 |------|-----|------------------|
-| Du lịch | TRAVEL | *travel*.xlsx |
-| Xe cơ giới | VEHICLE | *vehicle*.xlsx |
-| Xe máy | MOTO | *moto*.xlsx |
-| Sức khỏe | HEALTH | *health*.xlsx |
-| Y tế xã hội | MEDICAL_SOCIAL | *medical*.xlsx |
+| Travel | TRAVEL | *travel*.xlsx |
+| Motor Vehicle | VEHICLE | *vehicle*.xlsx |
+| Motorcycle | MOTO | *moto*.xlsx |
+| Health | HEALTH | *health*.xlsx |
+| Medical Social | MEDICAL_SOCIAL | *medical*.xlsx |
 
 ---
 
-## Duplicate Check Logic (Key Feature)
+## Duplicate Check Logic
 
-### 4 Business Keys
+### 7 Business Keys
 
-Record được coi là **DUPLICATE** khi 4 keys này trùng với database:
+A record is marked as a **DUPLICATE** when these 7 business keys match an existing database record:
 
-1. **contractId** - Mã hợp đồng
-2. **name** - Tên người được bảo hiểm
-3. **majorName** - Tên nhóm chính
-4. **companyProviderName** - Công ty bảo hiểm
+1. **contractId** - Contract identifier
+2. **peopleName** - Insured person name
+3. **majorName** - Insurance program/major name
+4. **companyProviderName** - Insurance company provider
+5. **startDate** - Policy start date
+6. **endDate** - Policy end date
+7. **feeInsurance** - Insurance fee
 
 ### Algorithm
 
 ```python
-# Batch query tất cả existing keys TRONG 1 LẦN
+# Batch query all existing keys in a single query
 existing_keys = repository.get_existing_business_keys_batch(records)
 
 for record in records:
-    key = (contractId, name, majorName, companyProviderName)
+    key = (contractId, name, majorName, companyProviderName, startDate, endDate, feeInsurance)
     
     if key in existing_keys:
-        → Skip (Duplicate)
+        # Skip (Duplicate)
     else:
-        → Insert (New)
+        # Insert (New)
 ```
 
-**Performance:** 1000 records check trong 0.1-0.5 giây (batch query + Set lookup)
+**Performance:** 1,000 records verified within 0.1 - 0.5 seconds (via batch query + set lookup).
 
 ---
 
@@ -189,7 +192,7 @@ for record in records:
 ### Local Development (Backend)
 
 ```powershell
-# Tạo virtual environment
+# Create virtual environment
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 
@@ -213,21 +216,21 @@ npm run dev
 
 ## Testing
 
-### Manual Test
+### Manual Testing
 
-1. Prepare test Excel file với đúng format columns
-2. Upload qua UI: http://localhost:3010
-3. Check response: total, new, duplicates
-4. Verify database: `SELECT * FROM contracts;`
+1. Prepare a test Excel file with the correct column format.
+2. Upload via the UI: http://localhost:3010
+3. Verify the response metrics (total, new, duplicates).
+4. Verify database contents: `SELECT * FROM contracts;`
 
 ### Test Duplicate Logic
 
 ```sql
 -- Insert test data
-INSERT INTO contracts (contract_id, name, major_name, company_provider_name)
-VALUES ('HD001', 'Nguyen Van A', 'Group 1', 'ABC Insurance');
+INSERT INTO contracts (contract_id, name, major_name, company_provider_name, start_date, end_date, fee_insurance)
+VALUES ('HD001', 'Nguyen Van A', 'Group 1', 'ABC Insurance', '2026-01-01', '2026-12-31', 500000);
 
--- Upload Excel có record trùng → Should detect as duplicate
+-- Upload an Excel file containing duplicate records -> Should detect as duplicate
 ```
 
 ---
@@ -267,41 +270,41 @@ taskkill /PID <PID> /F
 ```
 
 ### Database Connection Failed
-- Check database credentials in `db_config.py`
-- Verify database server is running
-- Test connection: `docker exec -it cdc_portal_backend bash`
+- Check database credentials in `db_config.py`.
+- Verify database server is running.
+- Test connection: `docker exec -it cdc_portal_backend bash`.
 
 ### No Records Inserted
-- Check logs: `docker logs cdc_portal_backend`
-- Verify Excel format matches mapping
-- Check if all records are duplicates
+- Check logs: `docker logs cdc_portal_backend`.
+- Verify Excel format matches the target mapping.
+- Check if all records are duplicates.
 
 ---
 
 ## Deployment Notes
 
-### Files KHÔNG đóng gói:
-- ❌ `.venv/` - Virtual environment (100-500MB)
-- ❌ `node_modules/` - Node dependencies (200MB-1GB)
-- ❌ `__pycache__/` - Python cache
+### Excluded files:
+- `.venv/` - Virtual environment
+- `node_modules/` - Node dependencies
+- `__pycache__/` - Python compilation cache
 
-→ Docker sẽ tự động cài từ `requirements.txt` và `package.json`
+Docker will automatically install all dependencies from `requirements.txt` and `package.json`.
 
 ### Production Checklist:
-- [ ] Update database credentials
-- [ ] Configure firewall rules
-- [ ] Enable HTTPS (reverse proxy)
-- [ ] Setup backup strategy
-- [ ] Configure logging/monitoring
-- [ ] Set resource limits (CPU, Memory)
+- Update database credentials
+- Configure firewall rules
+- Enable HTTPS (reverse proxy)
+- Setup backup strategy
+- Configure logging/monitoring
+- Set resource limits (CPU, Memory)
 
 ---
 
 ## Support
 
 **Documentation:**
-- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Hướng dẫn deploy chi tiết
-- [BUSINESS_LOGIC.md](./BUSINESS_LOGIC.md) - Business logic và architecture
+- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Detailed deployment instructions
+- [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md) - Project architecture and data flow
 
 **Contact:**
 - Email: support@insustream.com

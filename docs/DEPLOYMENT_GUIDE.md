@@ -1,103 +1,103 @@
-# Hướng Dẫn Triển Khai Hệ Thống (Deployment Guide)
+# Deployment Guide
 
-Tài liệu này hướng dẫn từng bước khởi chạy toàn bộ hạ tầng dự án **Hybrid Data Ingestion & Streaming ETL Platform** cục bộ thông qua Docker Compose.
+This guide provides step-by-step instructions to spin up the entire infrastructure of the **Hybrid Data Ingestion & Streaming ETL Platform** locally using Docker Compose.
 
 ---
 
-## 🛠️ 1. Chuẩn Bị Môi Trường
-1. Sao chép cấu hình môi trường từ file mẫu:
+## 1. Environment Preparation
+1. Copy the environment configuration from the template file:
    ```powershell
    cp .env.example .env
    ```
-2. Khởi tạo mạng Docker dùng chung cho toàn bộ dự án:
+2. Initialize a shared Docker network for the entire project:
    ```powershell
    docker network create cdc-network
    ```
 
 ---
 
-## 🚀 2. Khởi Chạy Hạ Tầng (Infrastructure)
+## 2. Infrastructure Launch
 
-Hãy khởi chạy các thành phần hạ tầng theo thứ tự sau để đảm bảo kết nối hoạt động trơn tru:
+Launch the infrastructure components in the following order to ensure smooth connectivity:
 
-### Bước 2.1: Chạy Hệ Cơ Sở Dữ Liệu (PostgreSQL)
-Chạy cả Cơ sở dữ liệu nguồn (Production DB) và cơ sở dữ liệu đích (Staging/Reporting DB):
+### Step 2.1: Start the Databases (PostgreSQL)
+Run both the source database (Production DB) and the target database (Staging/Reporting DB):
 ```powershell
 docker-compose -f docker-compose.db.yml up -d
 ```
-*   **Production DB** chạy cổng: `5432`
-*   **Staging/Warehouse DB** chạy cổng: `5433`
+*   **Production DB** port: `5432`
+*   **Staging/Warehouse DB** port: `5433`
 
-### Bước 2.2: Chạy Kafka (Hệ Thống Message Queue)
+### Step 2.2: Start Kafka (Message Queue System)
 ```powershell
 docker-compose -f docker-compose.kafka.yml up -d
 ```
-*Đợi khoảng 10-15 giây để Kafka Broker khởi động hoàn tất.*
+*Wait about 10-15 seconds for the Kafka Broker to fully start.*
 
-### Bước 2.3: Chạy Debezium Connect (Giám Sát CDC)
+### Step 2.3: Start Debezium Connect (CDC Monitoring)
 ```powershell
 docker-compose -f docker-compose.debezium.yml up -d
 ```
-*Đợi khoảng 20-30 giây để Debezium Connect REST API sẵn sàng.*
+*Wait about 20-30 seconds for the Debezium Connect REST API to become ready.*
 
 ---
 
-## ⚙️ 3. Đăng Ký Debezium Connector
+## 3. Register Debezium Connector
 
-Đăng ký connector để bắt đầu thu thập dữ liệu (CDC) từ Production DB truyền vào Kafka:
+Register the connector to start capturing data changes (CDC) from the Production DB and streaming them into Kafka:
 
 ```powershell
-# Sử dụng PowerShell
+# Using PowerShell
 Invoke-RestMethod -Uri "http://localhost:8083/connectors" `
   -Method Post `
   -ContentType "application/json" `
   -Body (Get-Content configs\register-source-connector.json -Raw)
 ```
 
-**Kiểm tra trạng thái hoạt động (Phải trả về trạng thái `RUNNING`):**
+**Check operational status (should return a status of `RUNNING`):**
 ```powershell
 Invoke-RestMethod -Uri "http://localhost:8083/connectors/postgresql-source-connector/status"
 ```
 
 ---
 
-## 🐍 4. Khởi Chạy Streaming Consumer & Scheduler
+## 4. Launch Streaming Consumer & Scheduler
 
-### Bước 4.1: Chạy CDC Consumer
-Đồng bộ các sự kiện thay đổi dữ liệu từ Kafka vào Staging Database:
+### Step 4.1: Start the CDC Consumer
+Sync database change events from Kafka to the Staging Database:
 ```powershell
 docker-compose -f docker-compose.consumer.yml up -d --build
 ```
 
-### Bước 4.2: Chạy dbt Transformation Scheduler
-Dịch vụ lập lịch chạy ngầm thực thi các mô hình dbt biến đổi dữ liệu sang Star Schema:
+### Step 4.2: Start the dbt Transformation Scheduler
+The scheduler background daemon runs dbt transformations to convert data into the Star Schema:
 ```powershell
 docker-compose -f docker-compose.scheduler.yml up -d --build
 ```
 
-### Bước 4.3: Chạy Mock Data Generator
-Tự động chèn và giả lập tương tác trên cơ sở dữ liệu nguồn (phục vụ mục đích demo):
+### Step 4.3: Start the Mock Data Generator
+Automatically insert and simulate transactions on the source database (for demonstration purposes):
 ```powershell
 docker-compose -f docker-compose.generator.yml up -d --build
 ```
 
 ---
 
-## 🌐 5. Khởi Chạy Offline Ingestion Portal (Giao Diện)
+## 5. Start the Offline Ingestion Portal (UI)
 
-Khởi động giao diện quản lý và cổng tải lên file Excel:
+Start the management UI and Excel upload portal:
 ```powershell
 docker-compose -f docker-compose.portal.yml up -d --build
 ```
 
-*   **Portal Frontend**: Truy cập tại địa chỉ [http://localhost:3000](http://localhost:3000)
-*   **Portal Backend API**: Truy cập tại địa chỉ [http://localhost:8000](http://localhost:8000)
-*   **Kafka UI**: Truy cập tại địa chỉ [http://localhost:9999](http://localhost:9999) (giám sát các Kafka Topic)
+*   **Portal Frontend**: Access at [http://localhost:3000](http://localhost:3000)
+*   **Portal Backend API**: Access at [http://localhost:8000](http://localhost:8000)
+*   **Kafka UI**: Access at [http://localhost:9999](http://localhost:9999) (monitors Kafka Topics)
 
 ---
 
-## 🔍 6. Xác Minh & Kiểm Tra Dữ Liệu
-Bạn có thể kết nối vào PostgreSQL Staging/Warehouse ở cổng `5433` (User: `postgres`, Password: `password`) để kiểm tra các bảng báo cáo:
-- Kiểm tra các bảng Dimension: `select count(*) from warehouse.dim_customer;`
-- Kiểm tra bảng Fact: `select count(*) from warehouse.fct_contracts;`
-- Kiểm tra Data Mart: `select count(*) from mart.dm_profiling_analysis;`
+## 6. Verification & Data Checking
+You can connect to the PostgreSQL Staging/Warehouse database on port `5433` (User: `postgres`, Password: `password`) to check the reporting tables:
+- Check Dimension tables: `select count(*) from warehouse.dim_customer;`
+- Check Fact tables: `select count(*) from warehouse.fct_contracts;`
+- Check Data Marts: `select count(*) from mart.dm_profiling_analysis;`
