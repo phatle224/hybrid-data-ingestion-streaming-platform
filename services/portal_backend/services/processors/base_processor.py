@@ -496,11 +496,11 @@ class IInsuranceProcessor(ABC):
             'liberty', 'vbi', 'bảo minh', 'baominh', 'bảo việt', 'baoviet',
             'tasc', 'tasco', 'pvi', 'mic', 'pti', 'aaa', 'gic', 'opes'
         ]):
-            if 'affina' in val_lower or 'insustream' in val_lower:
+            if 'insustream' in val_lower:
                 return 'InsuStream'
             return 'Nhà bảo hiểm'
             
-        if 'affina' in val_lower or 'insustream' in val_lower:
+        if 'insustream' in val_lower:
             return 'InsuStream'
             
         if 'online' in val_lower or 'gateway' in val_lower or 'gate' in val_lower or 'payoo' in val_lower:

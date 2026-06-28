@@ -413,7 +413,7 @@ class BaseInsuranceMapping(ABC):
         """
         Validate that termsFeePaymentMethod is NOT NULL and belongs to the allowed enum.
 
-        Valid values: OCB, Payoo, Bảo Kim, VietcomBank, Nhà bảo hiểm, Affina
+        Valid values: OCB, Payoo, Bảo Kim, VietcomBank, Nhà bảo hiểm, InsuStream
 
         Args:
             record: Dictionary with database field names

@@ -4,7 +4,7 @@ CDC Consumer - Debezium Source → Kafka → MySQL Staging
 Routes CDC events from source database to staging tables.
 
 Architecture:
-    Debezium → Kafka (source topics) → This Consumer → insuranceWarehouse
+    Debezium → Kafka (source topics) → This Consumer → insustream_staging
 
 Inherits from BaseKafkaConsumer for standardized lifecycle management.
 Uses shared DebeziumTransformer and SQLQueryBuilder to eliminate code duplication.

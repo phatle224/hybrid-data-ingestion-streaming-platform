@@ -117,7 +117,7 @@ def make_messy_voucher():
 def make_messy_company_sale():
     """Generates inconsistent company sale names to clean with dbt."""
     companies = [
-        'Affina Co. Ltd.', 'affina', 'AFFINA GROUP', 'Affina', '  affina  ',
+        'InsuStream Co. Ltd.', 'insustream', 'INSUSTREAM GROUP', 'InsuStream', '  insustream  ',
         'SafeGuard Corp', 'safeguard', 'SafeGuard Co', 'Aegis Insurances', 'aegis'
     ]
     return random.choice(companies)

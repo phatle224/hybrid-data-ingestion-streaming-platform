@@ -1,5 +1,0 @@
-1. sửa lại mục advance ở portal
-2. chỉnh lại thành nền trắng
-3. giao diện còn lỗi 1 số chỗ
-4. ngôn ngữ
-5. còn affina

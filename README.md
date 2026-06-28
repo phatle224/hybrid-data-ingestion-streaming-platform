@@ -17,9 +17,9 @@ Hệ thống được chia làm hai kênh nạp dữ liệu chính đồng bộ 
 ```mermaid
 flowchart TB
     subgraph "Kênh Trực Tuyến (Online CDC)"
-        SRC_DB[("Production DB<br/>(insuranceSale)")]
+        SRC_DB[("Production DB<br/>(insustream_sale)")]
         DBZ_SRC["⚡ Debezium Source<br/>(Binlog Reader)"]
-        KF_SRC{{"📨 Kafka Topics<br/>(source.insuranceSale.*)"}}
+        KF_SRC{{"📨 Kafka Topics<br/>(source.insustream_sale.*)"}}
         CDC_CONS["🐍 CDC Consumer<br/>(Source to Staging)"]
     end
 
