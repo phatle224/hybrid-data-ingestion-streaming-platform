@@ -491,7 +491,7 @@ class IInsuranceProcessor(ABC):
             
         # Handle insurer transfers and other string deviations
         if any(k in val_lower for k in [
-            'chuyển khoản', 'chuyen khoan', 'chuyển về', 'chuyen ve',
+            'chuyển khoản', 'chuyen khoan',
             'nhà bh', 'nha bh', 'nhà bảo hiểm', 'nha bao hiem',
             'liberty', 'vbi', 'bảo minh', 'baominh', 'bảo việt', 'baoviet',
             'tasc', 'tasco', 'pvi', 'mic', 'pti', 'aaa', 'gic', 'opes'

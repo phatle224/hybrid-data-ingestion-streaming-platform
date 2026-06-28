@@ -1,11 +1,10 @@
 """
-Connection managers for MySQL, Kafka, and Redis.
+Connection managers for MySQL and Kafka.
 Provides retry logic, auto-reconnection, and resource cleanup.
 
 Following reporting-main patterns:
 - CConns → MySQLConnectionManager
 - KafkaConfig → KafkaConsumerFactory
-- RedisClusterConnection → RedisConnectionManager
 """
 import json
 import logging
@@ -22,7 +21,6 @@ import psycopg2
 from psycopg2 import Error as PostgreSQLError
 from psycopg2.extras import RealDictCursor
 from kafka import KafkaConsumer
-import redis
 
 logger = logging.getLogger(__name__)
 
@@ -460,110 +458,3 @@ class KafkaConsumerFactory:
         logger.error("Max retries reached. Could not connect to Kafka.")
         return None
 
-
-# =============================================================================
-# Redis Connection Manager
-# =============================================================================
-
-class RedisConnectionManager:
-    """
-    Redis connection manager with graceful degradation.
-
-    Usage:
-        redis_mgr = RedisConnectionManager(config)
-        redis_mgr.connect()
-        redis_mgr.setex('key', 3600, 'value')
-        exists = redis_mgr.exists('key')
-    """
-
-    def __init__(self, config: Dict[str, Any]):
-        self._config = config
-        self._client: Optional[redis.Redis] = None
-
-    @property
-    def client(self) -> Optional[redis.Redis]:
-        return self._client
-
-    @property
-    def is_connected(self) -> bool:
-        return self._client is not None
-
-    def connect(self) -> bool:
-        """Connect to Redis. Returns False gracefully on failure."""
-        try:
-            self._client = redis.Redis(
-                host=self._config['host'],
-                port=self._config['port'],
-                password=self._config.get('password'),
-                db=self._config.get('db', 0),
-                decode_responses=True,
-            )
-            self._client.ping()
-            logger.info(
-                "Connected to Redis at %s:%s",
-                self._config['host'], self._config['port']
-            )
-            return True
-        except Exception as e:
-            logger.warning("Redis connection failed: %s. Continuing without Redis.", e)
-            self._client = None
-            return False
-
-    def exists(self, key: str) -> bool:
-        """Check if key exists."""
-        if not self._client:
-            return False
-        try:
-            return self._client.exists(key) > 0
-        except Exception as e:
-            logger.warning("Redis exists check failed: %s", e)
-            return False
-
-    def get(self, key: str) -> Optional[str]:
-        """Get value by key."""
-        if not self._client:
-            return None
-        try:
-            return self._client.get(key)
-        except Exception:
-            return None
-
-    def setex(self, key: str, ttl: int, value: str):
-        """Set key with TTL expiry."""
-        if not self._client:
-            return
-        try:
-            self._client.setex(key, ttl, value)
-        except Exception as e:
-            logger.warning("Redis setex failed: %s", e)
-
-    def keys(self, pattern: str) -> List[str]:
-        """Get keys matching pattern. WARNING: O(N) — blocks Redis. Use scan_iter() instead."""
-        if not self._client:
-            return []
-        try:
-            return self._client.keys(pattern)
-        except Exception:
-            return []
-
-    def scan_iter(self, match: str = '*', count: int = 500):
-        """Iterate keys matching pattern using SCAN (non-blocking, cursor-based)."""
-        if not self._client:
-            return iter([])
-        try:
-            return self._client.scan_iter(match=match, count=count)
-        except Exception as e:
-            logger.warning("Redis scan_iter failed: %s", e)
-            return iter([])
-
-    def info(self) -> Dict:
-        """Get Redis server info."""
-        if not self._client:
-            return {}
-        return self._client.info()
-
-    def close(self):
-        """Close Redis connection."""
-        if self._client:
-            self._client.close()
-            logger.info("Redis connection closed")

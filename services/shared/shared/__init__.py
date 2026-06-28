@@ -9,12 +9,11 @@ Usage:
     from shared.connections import MySQLConnectionManager
 """
 from shared.logger import create_logger
-from shared.configs import BaseConfig, MySQLConfig, PostgreSQLConfig, KafkaConfig, RedisConfig
+from shared.configs import BaseConfig, MySQLConfig, PostgreSQLConfig, KafkaConfig
 from shared.connections import (
     MySQLConnectionManager,
     PostgreSQLConnectionManager,
     KafkaConsumerFactory,
-    RedisConnectionManager,
 )
 from shared.debezium import DebeziumTransformer
 from shared.query_builder import SQLQueryBuilder
@@ -22,8 +21,8 @@ from shared.base_consumer import BaseKafkaConsumer
 
 __all__ = [
     'create_logger',
-    'BaseConfig', 'MySQLConfig', 'PostgreSQLConfig', 'KafkaConfig', 'RedisConfig',
+    'BaseConfig', 'MySQLConfig', 'PostgreSQLConfig', 'KafkaConfig',
     'MySQLConnectionManager', 'PostgreSQLConnectionManager', 'KafkaConsumerFactory',
-    'RedisConnectionManager',
     'DebeziumTransformer', 'SQLQueryBuilder', 'BaseKafkaConsumer',
 ]
+

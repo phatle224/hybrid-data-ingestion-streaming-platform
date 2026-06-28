@@ -82,7 +82,7 @@ class BaseKafkaConsumer(ABC):
 
     @abstractmethod
     def _setup_connections(self) -> bool:
-        """Set up all required connections (MySQL, Redis, etc.)."""
+        """Set up all required connections (PostgreSQL, MySQL, etc.)."""
         pass
 
     @abstractmethod

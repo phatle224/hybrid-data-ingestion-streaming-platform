@@ -25,7 +25,6 @@ graph TB
 
     subgraph "3. Staging DB (Hồ Chứa Dữ Liệu)"
         STG_DB[("insure_staging<br/>(PostgreSQL Staging DB)")]
-        REDIS["Redis Cache<br/>(Deduplication Marker)"]
     end
 
     subgraph "4. Transformation Layer (dbt ELT)"
@@ -41,17 +40,14 @@ graph TB
     %% Luồng Offline
     EXCEL -->|"Upload"| PORTAL_FE
     PORTAL_FE -->|"API call"| PORTAL_BE
-    PORTAL_BE <-->|"Check 7 Business Keys"| REDIS
-    PORTAL_BE -->|"Ghi dữ liệu mới"| STG_DB
+    PORTAL_BE <-->|"Batch Check 7 Business Keys"| STG_DB
+    PORTAL_BE -->|"Ghi dữ liệu mới vào stg_offline"| STG_DB
 
     %% Luồng Online CDC
     SRC_DB -->|"Write Ahead Log (WAL)"| DBZ
     DBZ -->|"CDC Events"| KAFKA
     KAFKA -->|"Consume events"| CDC_CONSUMER
     CDC_CONSUMER -->|"UPSERT / UPDATE / DELETE"| STG_DB
-    
-    %% Xây dựng Cache chống trùng
-    STG_DB -.->|"redis_cache_builder.py"| REDIS
 
     %% Luồng ELT với dbt
     STG_DB -->|"Source refs"| DBT_PROJ
@@ -71,7 +67,7 @@ graph TB
 ### 2.2. Offline Ingestion & Chống Trùng Lặp (Deduplication)
 - **Portal App (React/FastAPI)**: Cho phép tải lên các tệp Excel hợp đồng offline từ đối tác.
 - **Nguyên tắc "Online Wins"**: Dữ liệu từ hệ thống chính thống (Online) luôn được ưu tiên cao hơn dữ liệu tải lên thủ công (Offline).
-- **Cơ chế 7 Business Keys qua Redis**: Để chống trùng lặp chéo giữa 2 kênh, hệ thống sử dụng 7 trường nghiệp vụ để tạo mã định danh duy nhất (Business Key ID) và lưu trữ trên bộ nhớ đệm **Redis Cache ($O(1)$)**:
+- **Cơ chế 7 Business Keys loại bỏ trùng lặp qua SQL và dbt**: Để chống trùng lặp chéo giữa 2 kênh, hệ thống sử dụng 7 trường nghiệp vụ để tạo mã định danh duy nhất (Business Key ID) gồm:
   1. `contractId` (Mã hợp đồng)
   2. `peopleName` (Tên khách hàng)
   3. `majorName` (Tên chương trình bảo hiểm)
@@ -79,6 +75,10 @@ graph TB
   5. `startDate` (Ngày hiệu lực)
   6. `endDate` (Ngày hết hạn)
   7. `feeInsurance` (Phí bảo hiểm)
+
+Quy trình loại bỏ trùng lặp diễn ra ở 2 cấp độ:
+1. **Tại API (Staging Level)**: Portal Backend dùng `DuplicateService` để truy vấn trực tiếp cơ sở dữ liệu PostgreSQL Staging thông qua batch query. Nếu bản ghi Excel khớp với bất kỳ bản ghi hiện có nào qua 7 Business Keys nghiệp vụ, nó sẽ bị loại bỏ ngay trước khi lưu vào bảng `stgInsuranceContractObjectOffline`.
+2. **Tại dbt (ELT Cross-Channel Level)**: Mô hình dbt intermediate `int_contracts_deduped.sql` thực hiện gộp (`UNION ALL`) dữ liệu Online và Offline, sau đó dùng hàm cửa sổ `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY CASE WHEN source_type = 'online' THEN 1 ELSE 2 END ASC)` để lọc bỏ trùng lặp, đảm bảo dữ liệu Online CDC luôn chiến thắng ("Online Wins").
 
 ---
 

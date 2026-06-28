@@ -28,18 +28,13 @@ docker-compose -f docker-compose.db.yml up -d
 *   **Production DB** chạy cổng: `5432`
 *   **Staging/Warehouse DB** chạy cổng: `5433`
 
-### Bước 2.2: Chạy Redis (Chống Trùng Lặp)
-```powershell
-docker-compose -f docker-compose.redis.yml up -d
-```
-
-### Bước 2.3: Chạy Kafka (Hệ Thống Message Queue)
+### Bước 2.2: Chạy Kafka (Hệ Thống Message Queue)
 ```powershell
 docker-compose -f docker-compose.kafka.yml up -d
 ```
 *Đợi khoảng 10-15 giây để Kafka Broker khởi động hoàn tất.*
 
-### Bước 2.4: Chạy Debezium Connect (Giám Sát CDC)
+### Bước 2.3: Chạy Debezium Connect (Giám Sát CDC)
 ```powershell
 docker-compose -f docker-compose.debezium.yml up -d
 ```

@@ -6,20 +6,20 @@
 [![Kafka](https://img.shields.io/badge/Apache_Kafka-3.6-black.svg)](https://kafka.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://www.docker.com/)
 
-Một nền tảng kỹ nghệ dữ liệu doanh nghiệp (Enterprise Data Engineering Platform) kết hợp hài hòa giữa **Luồng sự kiện thời gian thực (Online Real-time CDC)** và **Cổng tải lên ngoại tuyến (Offline Batch Ingestion)**. Hệ thống tự động đồng bộ, chuẩn hóa dữ liệu từ các nguồn khác nhau vào một kho lưu trữ báo cáo tập trung (Wide Table) với cơ chế chống trùng lặp hiệu năng cao dựa trên Redis.
+Một nền tảng kỹ nghệ dữ liệu doanh nghiệp (Enterprise Data Engineering Platform) kết hợp hài hòa giữa **Luồng sự kiện thời gian thực (Online Real-time CDC)** và **Cổng tải lên ngoại tuyến (Offline Batch Ingestion)**. Hệ thống tự động đồng bộ, chuẩn hóa dữ liệu từ các nguồn khác nhau vào một kho lưu trữ báo cáo tập trung (Wide Table) với cơ chế chống trùng lặp chéo hiệu năng cao dựa trên SQL và dbt.
 
 ---
 
 ## 🗺️ Kiến Trúc Hệ Thống (System Architecture)
 
-Hệ thống được chia làm hai kênh nạp dữ liệu chính đồng bộ vào một database Staging trước khi thực hiện luồng ETL thời gian thực sang cơ sở dữ liệu Reporting:
+Hệ thống được chia làm hai kênh nạp dữ liệu chính đồng bộ vào một database Staging trước khi thực hiện luồng ELT gia tăng (Incremental) thông qua dbt sang cơ sở dữ liệu Reporting:
 
 ```mermaid
 flowchart TB
     subgraph "Kênh Trực Tuyến (Online CDC)"
         SRC_DB[("Production DB<br/>(insustream_sale)")]
         DBZ_SRC["⚡ Debezium Source<br/>(Binlog Reader)"]
-        KF_SRC{{"📨 Kafka Topics<br/>(source.insustream_sale.*)"}}
+        KF_SRC{{"📨 Kafka Topics<br/>(source.public.*)"}}
         CDC_CONS["🐍 CDC Consumer<br/>(Source to Staging)"]
     end
 
@@ -31,24 +31,21 @@ flowchart TB
 
     subgraph "Vùng Đệm & Chuẩn Hóa (Staging Layer)"
         STG_DB[("Staging DB<br/>(staging schema)")]
-        REDIS_CACHE[("🔴 Redis Cache<br/>(7 Business Keys)")]
     end
 
-    subgraph "Luồng Streaming ETL & Phân Tích"
-        DBZ_STG["⚡ Debezium Staging<br/>(WAL Reader)"]
-        KF_STG{{"📨 Kafka Topics<br/>(staging.staging.*)"}}
-        ETL_CONS["🐍 Streaming ETL Consumer<br/>(Wide Table Builder)"]
-        PROF_CONS["🐍 Profiling Consumer<br/>(Real-time Analysis)"]
+    subgraph "Luồng Biến Đổi & DWH (dbt ELT)"
+        SCHEDULER["⚙️ dbt Scheduler Daemon<br/>(Every 5 minutes)"]
+        DBT_ANALYTICS["📊 dbt Analytics Project<br/>(Models & Marts)"]
     end
 
     subgraph "Kho Dữ Liệu Báo Cáo (Reporting Layer)"
         RPT_DB[("Reporting DB<br/>(reporting schema)")]
-        WIDE_TAB["📊 Wide Table<br/>(contract)"]
-        PROF_TAB["📊 Profiling Table<br/>(profiling_analysis)"]
+        WIDE_TAB["📊 Dimensions & Facts<br/>(dim_*, fct_*)"]
+        MARTS["📊 Data Marts<br/>(dm_*)"]
     end
 
     %% Kênh Online
-    SRC_DB -->|MySQL Binlog| DBZ_SRC
+    SRC_DB -->|PostgreSQL Binlog| DBZ_SRC
     DBZ_SRC --> KF_SRC
     KF_SRC --> CDC_CONS
     CDC_CONS -->|Transform & UPSERT| STG_DB
@@ -56,22 +53,15 @@ flowchart TB
     %% Kênh Offline
     EXCEL -->|Upload| PORTAL_FE
     PORTAL_FE -->|REST API| PORTAL_BE
-    PORTAL_BE <-->|Batch Check 7 Keys| REDIS_CACHE
+    PORTAL_BE <-->|Batch Check 7 Keys| STG_DB
     PORTAL_BE -->|Write Offline Data| STG_DB
 
-    %% Phân tách Staging & Reporting
-    STG_DB -->|MySQL Binlog| DBZ_STG
-    DBZ_STG --> KF_STG
-    
-    KF_STG --> ETL_CONS
-    KF_STG --> PROF_CONS
-
-    ETL_CONS <-->|Check 7-Key Duplicate| REDIS_CACHE
-    ETL_CONS -->|Build Wide-Table| WIDE_TAB
-    PROF_CONS -->|Calculated Metrics| PROF_TAB
-    
-    WIDE_TAB --> RPT_DB
-    PROF_TAB --> RPT_DB
+    %% dbt ELT
+    STG_DB --> DBT_ANALYTICS
+    SCHEDULER -->|Run dbt models| DBT_ANALYTICS
+    DBT_ANALYTICS --> WIDE_TAB
+    WIDE_TAB --> MARTS
+    MARTS --> RPT_DB
 ```
 
 ---
@@ -97,7 +87,6 @@ hybrid-data-ingestion-platform/
 │   ├── profiling/               # (Legacy) Consumer phân tích hành vi khách hàng
 │   └── streaming_etl/           # (Legacy) Consumer đồng bộ DB Staging -> DB Reporting
 ├── docker-compose.kafka.yml     # Quản lý Zookeeper, Kafka và Kafka-UI
-├── docker-compose.redis.yml     # Quản lý Redis và Redis Commander (UI)
 ├── docker-compose.debezium.yml  # Quản lý Debezium Connect và Debezium-UI
 ├── docker-compose.consumer.yml  # Quản lý CDC Consumer
 ├── docker-compose.scheduler.yml # Quản lý dbt Scheduler Daemon (Incremental sync)
@@ -120,8 +109,8 @@ hybrid-data-ingestion-platform/
 ### 2. Double CDC Layer
 Hệ thống sử dụng **Debezium** để đọc log nhị phân (MySQL binlog) ở hai cấp độ riêng biệt, tách rời luồng dữ liệu thô (Source) khỏi luồng dữ liệu tổng hợp (Reporting) nhằm nâng cao hiệu năng và độ ổn định.
 
-### 3. Redis Deduplication Cache (7 Business Keys)
-Nhằm ngăn chặn dữ liệu ngoại tuyến (Offline Excel) ghi đè lên dữ liệu trực tuyến (Online CDC) theo nguyên tắc **Online Wins**, hệ thống thực hiện kiểm tra trùng lặp thời gian thực với độ phức tạp $O(1)$ thông qua Redis bằng cách kết hợp 7 khóa định danh nghiệp vụ:
+### 3. Cơ Chế Khử Trùng Lặp Chéo (SQL-based Deduplication)
+Nhằm ngăn chặn dữ liệu ngoại tuyến (Offline Excel) ghi đè lên dữ liệu trực tuyến (Online CDC) theo nguyên tắc **Online Wins**, hệ thống thực hiện kiểm tra và khử trùng lặp qua 7 khóa định danh nghiệp vụ bằng SQL trực tiếp ở tầng Staging (qua API backend) và dbt (qua model intermediate `int_contracts_deduped`):
 ```
 contract:dedup:{contractId}:{name}:{majorName}:{companyProviderName}:{startDate}:{endDate}:{feeInsurance}
 ```
@@ -165,9 +154,6 @@ Tạo mạng Docker dùng chung và kích hoạt các dịch vụ cơ sở hạ 
 ```powershell
 # Tạo network dùng chung cho toàn bộ dự án
 docker network create cdc-network
-
-# Khởi chạy Redis & Redis Commander (Port 6379, UI: 8081)
-docker compose -f docker-compose.redis.yml up -d
 
 # Khởi chạy Kafka, Zookeeper & Kafka-UI (Kafka: 9092, UI: 8080)
 docker compose -f docker-compose.kafka.yml up -d
@@ -223,4 +209,3 @@ docker compose -f docker-compose.portal.yml up -d --build
 *   **Theo dõi logs hệ thống**: `docker compose -f docker-compose.<service>.yml logs -f`
 *   **Trực quan hóa Topic Kafka**: Truy cập [http://localhost:8080](http://localhost:8080)
 *   **Trực quan hóa Debezium Connectors**: Truy cập [http://localhost:8084](http://localhost:8084)
-*   **Quản lý Redis Keys**: Truy cập [http://localhost:8081](http://localhost:8081)

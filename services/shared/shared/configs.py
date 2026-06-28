@@ -135,24 +135,6 @@ class KafkaConfig(BaseConfig):
         }
 
 
-class RedisConfig(BaseConfig):
-    """Redis configuration."""
-
-    def __init__(
-        self,
-        host: str = None,
-        port: int = None,
-        password: str = None,
-        db: int = None,
-    ):
-        super().__init__()
-        self._config = {
-            'host': host or self.env('REDIS_HOST', 'cdc_redis'),
-            'port': port or self.env('REDIS_PORT', 6379, int),
-            'password': password or self.env('REDIS_PASSWORD', 'admin'),
-            'db': db if db is not None else self.env('REDIS_DB', 0, int),
-        }
-
 
 class PostgreSQLConfig(BaseConfig):
     """
