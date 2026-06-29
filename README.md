@@ -3,7 +3,7 @@
 </div>
 
 <div align="center">
-  <strong>English</strong> | <a href="README_VI.md">Tiếng Việt</a>
+  <strong>English</strong> | <a href="README_VI.md">Vietnamese</a>
 </div>
 
 <h3 align="center">Enterprise Data Engineering Platform combining real-time CDC and offline Excel batch ingestion</h3>
