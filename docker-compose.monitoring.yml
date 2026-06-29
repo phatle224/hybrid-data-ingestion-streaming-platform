@@ -64,7 +64,7 @@ services:
     ports:
       - "9187:9187"
     environment:
-      DATA_SOURCE_NAME: "postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@${DB_HOST:-host.docker.internal}:5433/insuranceWarehouse?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@${DB_HOST:-host.docker.internal}:${DB_PORT:-5432}/${DB_NAME_STAGING:-insuranceWarehouse}?sslmode=disable"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
