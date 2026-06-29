@@ -3,7 +3,7 @@
 </div>
 
 <div align="center">
-  <strong>Tiếng Việt</strong> | <a href="README.md">English</a>
+  <strong>Vietnamese</strong> | <a href="README.md">English</a>
 </div>
 
 <h3 align="center">Nền tảng kỹ nghệ dữ liệu doanh nghiệp kết hợp luồng sự kiện thời gian thực (CDC) và tải lên Excel ngoại tuyến</h3>
