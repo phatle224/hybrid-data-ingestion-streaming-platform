@@ -197,9 +197,9 @@ Performance metrics measured on a local Docker environment (8 vCPU, 16 GB RAM):
   <img width="8" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apachekafka/apachekafka-original.svg" height="40" alt="kafka" />
   <img width="8" />
-  <img src="https://cdn.simpleicons.org/debezium/FF0000" height="40" alt="debezium" />
+  <img src="docs/images/debezium.png" height="40" alt="debezium" />
   <img width="8" />
-  <img src="https://cdn.simpleicons.org/dbt/FF694B" height="40" alt="dbt" />
+  <img src="docs/images/dbt.png" height="40" alt="dbt" />
   <img width="8" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" height="40" alt="docker" />
 </div>
@@ -308,6 +308,9 @@ docker compose -f docker-compose.portal.yml up -d --build
 ## Monitoring & Observability
 
 The platform includes a full observability stack powered by **Prometheus** and **Grafana** for real-time monitoring of Kafka consumer lag, PostgreSQL health, and ingestion throughput.
+
+### CDC Platform Overview Dashboard
+![CDC Platform Overview Dashboard](docs/images/monitoring_dashboard.png)
 
 ### Start the Monitoring Stack
 ```bash

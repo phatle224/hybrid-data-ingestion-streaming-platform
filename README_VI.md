@@ -197,9 +197,9 @@ Các chỉ số hiệu năng đo trên môi trường Docker cục bộ (8 vCPU,
   <img width="8" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apachekafka/apachekafka-original.svg" height="40" alt="kafka" />
   <img width="8" />
-  <img src="https://cdn.simpleicons.org/debezium/FF0000" height="40" alt="debezium" />
+  <img src="docs/images/debezium.png" height="40" alt="debezium" />
   <img width="8" />
-  <img src="https://cdn.simpleicons.org/dbt/FF694B" height="40" alt="dbt" />
+  <img src="docs/images/dbt.png" height="40" alt="dbt" />
   <img width="8" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" height="40" alt="docker" />
 </div>
@@ -308,6 +308,9 @@ docker compose -f docker-compose.portal.yml up -d --build
 ## Giám Sát & Quan Sát Hệ Thống
 
 Nền tảng tích hợp stack giám sát đầy đủ gồm **Prometheus** và **Grafana** để theo dõi thời gian thực Kafka consumer lag, PostgreSQL health, và throughput nạp dữ liệu.
+
+### Giao Diện Dashboard CDC Platform Overview
+![Giao Diện Dashboard CDC Platform Overview](docs/images/monitoring_dashboard.png)
 
 ### Khởi Chạy Monitoring Stack
 ```bash
