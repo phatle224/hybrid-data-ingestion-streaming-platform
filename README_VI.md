@@ -289,10 +289,11 @@ docker compose -f docker-compose.debezium.yml up -d
 Đẩy tệp cấu hình JSON đăng ký theo dõi thay đổi bảng lên Debezium:
 ```powershell
 # Windows (PowerShell)
+$connectorJson = (Get-Content configs\register-source-connector.json -Raw).Replace('${DB_PASSWORD}', $env:DB_PASSWORD)
 Invoke-RestMethod -Uri "http://localhost:8083/connectors" `
   -Method Post `
   -ContentType "application/json" `
-  -Body (Get-Content configs\register-source-connector.json -Raw)
+  -Body $connectorJson
 ```
 
 ### Bước 5: Chạy các Services & Portal

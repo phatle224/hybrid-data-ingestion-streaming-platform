@@ -48,10 +48,11 @@ Register the connector to start capturing data changes (CDC) from the Production
 
 ```powershell
 # Using PowerShell
+$connectorJson = (Get-Content configs\register-source-connector.json -Raw).Replace('${DB_PASSWORD}', $env:DB_PASSWORD)
 Invoke-RestMethod -Uri "http://localhost:8083/connectors" `
   -Method Post `
   -ContentType "application/json" `
-  -Body (Get-Content configs\register-source-connector.json -Raw)
+  -Body $connectorJson
 ```
 
 **Check operational status (should return a status of `RUNNING`):**

@@ -54,8 +54,8 @@ class MySQLConfig(BaseConfig):
 
     Supports multiple database connections by customizing env variable prefixes.
     Example:
-        staging = MySQLConfig(database='insustream_staging')
-        reporting = MySQLConfig(database='insustream_reporting')
+        staging = MySQLConfig(database='insurance_staging')
+        reporting = MySQLConfig(database='insurance_reporting')
         profiling_staging = MySQLConfig(host_env='STAGING_DB_HOST', user_env='STAGING_DB_USER', ...)
     """
 
@@ -78,9 +78,9 @@ class MySQLConfig(BaseConfig):
         self._config = {
             'host': host or self.env(host_env, 'localhost'),
             'port': port or self.env(port_env, 3306, int),
-            'user': user or self.env(user_env, 'insu_admin'),
-            'password': password or self.env(password_env, 'REDACTED_PASSWORD'),
-            'database': database or self.env(database_env, 'insustream_staging'),
+            'user': user or self.env(user_env, ''),
+            'password': password or self.env(password_env, ''),
+            'database': database or self.env(database_env, 'insurance_staging'),
         }
         if charset:
             self._config['charset'] = charset
