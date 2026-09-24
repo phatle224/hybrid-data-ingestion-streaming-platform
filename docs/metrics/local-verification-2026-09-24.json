@@ -1,0 +1,85 @@
+{
+  "captured_at": "2026-09-24T07:03:36.930938+00:00",
+  "scope": "local demo verification; not a production performance benchmark",
+  "dbt_model_run": {
+    "dbt_core_version": "1.12.5",
+    "dbt_postgres_version": "1.11.0",
+    "elapsed_seconds": 4.46,
+    "total": 21,
+    "success": 21,
+    "threads": 4
+  },
+  "dbt_test": {
+    "dbt_core_version": "1.12.0-b3",
+    "dbt_postgres_version": "1.10.2",
+    "generated_at": "2026-09-24T07:03:36.930938Z",
+    "elapsed_seconds": 2.905,
+    "total": 101,
+    "statuses": {
+      "pass": 95,
+      "warn": 2,
+      "fail": 4
+    },
+    "non_passing": [
+      {
+        "test": "not_null_stg_contract_objects_house_people_name",
+        "status": "fail",
+        "failing_rows": 5
+      },
+      {
+        "test": "not_null_stg_contract_objects_vehicle_people_name",
+        "status": "fail",
+        "failing_rows": 5
+      },
+      {
+        "test": "relationships_fct_contracts_customer_key",
+        "status": "warn",
+        "failing_rows": 1640
+      },
+      {
+        "test": "relationships_fct_contracts_insured_person_key",
+        "status": "warn",
+        "failing_rows": 10
+      },
+      {
+        "test": "unique_dim_insured_person_insured_person_key",
+        "status": "fail",
+        "failing_rows": 1
+      },
+      {
+        "test": "unique_dm_contract_summary_contract_object_id",
+        "status": "fail",
+        "failing_rows": 4
+      }
+    ]
+  },
+  "database": {
+    "name": "insuranceWarehouse",
+    "row_counts": {
+      "staging.stgInsuranceContract": 5553,
+      "staging.stgInsuranceClaim": 1193,
+      "warehouse.dim_customer": 4156,
+      "warehouse.dim_insured_person": 5553,
+      "warehouse.dim_product": 54,
+      "warehouse.dim_sales_channel": 15,
+      "warehouse.fct_contracts": 5753,
+      "warehouse.fct_claims": 1126,
+      "mart.dm_contract_summary": 5757,
+      "mart.dm_profiling_analysis": 1126
+    }
+  },
+  "runtime": {
+    "http_endpoints_checked": 9,
+    "http_200": 9,
+    "debezium_connector": "RUNNING",
+    "debezium_task_0": "RUNNING",
+    "known_issue": "postgres_exporter serves metrics, but its stat_bgwriter collector is incompatible with PostgreSQL 18.4"
+  },
+  "not_measured": [
+    "CDC throughput",
+    "end-to-end CDC latency",
+    "offline deduplication rate",
+    "maximum Excel batch size",
+    "Kafka consumer lag under load"
+  ]
+}

@@ -1,5 +1,5 @@
 <div>
-  <img style="width: 100%" src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&reversal=true&text=Hybrid%20ETL%20Platform&fontSize=30&fontColor=ffffff&fontAlign=50&fontAlignY=45&rotate=0&stroke=-&animation=twinkling&desc=Real-time%20CDC%20%E2%80%A2%20Offline%20Excel%20Ingestion&descSize=15&descAlign=50&descAlignY=65&textBg=false&color=gradient" />
+  <img style="width: 100%" src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&reversal=true&text=Hybrid%20ELT%20Platform&fontSize=30&fontColor=ffffff&fontAlign=50&fontAlignY=45&rotate=0&stroke=-&animation=twinkling&desc=Real-time%20CDC%20%E2%80%A2%20Offline%20Excel%20Ingestion&descSize=15&descAlign=50&descAlignY=65&textBg=false&color=gradient" />
 </div>
 
 <div align="center">
@@ -24,7 +24,7 @@
 1. [Tổng Quan Dự Án](#tong-quan-du-an)
 2. [Kiến Trúc Hệ Thống & Luồng Dữ Liệu](#kien-truc-he-thong--luong-du-lieu)
 3. [Điểm Nhấn Tính Năng](#diem-nhan-tinh-nang)
-4. [Hiệu Năng & Số Liệu Đo Lường](#hieu-nang--so-lieu-do-luong)
+4. [Kiểm Chứng Cục Bộ & Số Liệu](#kiem-chung-cuc-bo--so-lieu)
 5. [Công Nghệ Sử Dụng](#cong-nghe-su-dung)
 6. [Cấu Trúc Thư Mục](#cau-truc-thu-muc)
 7. [Hướng Dẫn Khởi Chạy Nhanh](#huong-dan-khoi-chay-nhanh)
@@ -35,7 +35,7 @@
 
 ## Tổng Quan Dự Án
 
-Dự án này xây dựng một hệ thống tích hợp dữ liệu lai (**Hybrid Data Ingestion & Streaming ETL Platform**) phục vụ quản lý hợp đồng bảo hiểm. Hệ thống kết hợp hài hòa hai kênh dữ liệu khác biệt về bản chất:
+Dự án này xây dựng một hệ thống tích hợp dữ liệu lai (**Hybrid Data Ingestion & Streaming ELT Platform**) phục vụ quản lý hợp đồng bảo hiểm. Hệ thống kết hợp hài hòa hai kênh dữ liệu khác biệt về bản chất:
 1. **Luồng trực tuyến thời gian thực (Online Real-time CDC)**: Tự động ghi nhận mọi sự kiện thay đổi dữ liệu (INSERT, UPDATE, DELETE) trên Database nguồn của hệ thống bán hàng.
 2. **Cổng tải lên ngoại tuyến (Offline Batch Ingestion Portal)**: Cho phép các đối tác hoặc quản trị viên upload trực tiếp file Excel báo cáo hợp đồng thô.
 
@@ -50,15 +50,12 @@ Mục tiêu cốt lõi của hệ thống là tự động thu thập, kiểm tr
 
 Kiến trúc hệ thống được đóng gói hoàn chỉnh bằng Docker Containers, đảm bảo luồng dữ liệu trơn tru từ nguồn đến tầng báo cáo.
 
-### Sơ Đồ Quy Trình Hoạt Động (Project Workflow)
-![Project Workflow](docs/images/project_workflow.png)
-
 ### Chi Tiết Kênh Nạp & Biến Đổi Dữ Liệu
 ```mermaid
 flowchart TB
     subgraph "Kênh Trực Tuyến (Online CDC)"
         SRC_DB[("Production DB<br/>(insustream_sale)")]
-        DBZ_SRC["Debezium Source<br/>(Binlog Reader)"]
+        DBZ_SRC["Debezium Source<br/>(PostgreSQL WAL Reader)"]
         KF_SRC{{"Kafka Topics<br/>(source.public.*)"}}
         CDC_CONS["CDC Consumer<br/>(Source to Staging)"]
     end
@@ -92,7 +89,7 @@ flowchart TB
     end
 
     %% Kênh Online
-    SRC_DB -->|PostgreSQL Binlog| DBZ_SRC
+    SRC_DB -->|PostgreSQL WAL / logical decoding| DBZ_SRC
     DBZ_SRC --> KF_SRC
     KF_SRC --> CDC_CONS
     CDC_CONS -->|Transform & UPSERT| STG_DB
@@ -152,22 +149,29 @@ Hệ thống hiển thị trực quan các kịch bản kết quả xử lý d�
 
 ---
 
-## Hiệu Năng & Số Liệu Đo Lường
+## Kiểm Chứng Cục Bộ & Số Liệu
 
-Các chỉ số hiệu năng đo trên môi trường Docker cục bộ (8 vCPU, 16 GB RAM):
+Snapshot dưới đây được ghi nhận trên môi trường demo cục bộ vào ngày
+**2026-09-24**. Đây là kết quả kiểm chứng, không phải benchmark production.
 
-| Chỉ số | Giá trị | Mô tả |
-|--------|---------|-------|
-| **Online CDC Throughput** | ~500 sự kiện/giây (đỉnh) | Debezium bắt WAL events, Kafka đệm, Consumer ghi vào staging |
-| **Offline Batch Throughput** | ~50,000 bản ghi/lần upload | Excel được xử lý qua FastAPI + Pandas trong một API call |
-| **End-to-End CDC Latency** | < 1.5 giây | Từ lúc ghi DB production đến lúc hiện diện tại bảng staging |
-| **Tỉ lệ khử trùng** | ~18% dữ liệu offline | Bản ghi bị loại bởi 7 business keys chéo kênh |
-| **dbt Incremental Run** | ~8 giây | Chỉ xử lý dữ liệu mới/thay đổi kể từ lần chạy trước |
-| **dbt Full-Refresh Run** | ~45 giây | Xây dựng lại toàn bộ bảng warehouse và mart từ đầu |
-| **dbt Test Coverage** | 54 tests trên 3 tầng | Staging (source + model), Warehouse (dim + fact), Mart |
-| **Kafka Consumer Lag** | < 50 messages (trạng thái ổn định) | Đo qua Kafka Exporter + Dashboard Grafana |
+| Hạng mục | Kết quả quan sát | Phạm vi |
+|----------|------------------|---------|
+| **Chạy model dbt** | 21/21 model thành công trong 4,46 giây | Container scheduler, dbt Core 1.12.5, 4 threads |
+| **Data test dbt** | 101 test được cấu hình: 95 pass, 2 warning, 4 fail trong 2,91 giây | Venv cục bộ, dbt Core 1.12.0-b3; lỗi được liệt kê trong report |
+| **Fact trong warehouse** | 5.753 hợp đồng; 1.126 claim | Số dòng chính xác sau lần chạy |
+| **Data mart** | 5.757 dòng contract summary; 1.126 dòng profiling | Số dòng chính xác sau lần chạy |
+| **Runtime health** | 9/9 HTTP endpoint trong tài liệu trả về 200 | Portal, Kafka/Debezium UI, Connect, Prometheus, Grafana, exporters |
 
-> **Ghi chú**: Số liệu dựa trên tập dữ liệu ~120,000 hợp đồng và ~8,000 claim. Môi trường production với khả năng mở rộng ngang (nhiều Kafka partition + consumer instances) có thể đạt throughput cao hơn đáng kể.
+Tái tạo snapshot sau khi chạy `dbt test`:
+
+```powershell
+services/dbt_analytics/.venv/Scripts/python scripts/verify_local_metrics.py --run-dbt-test
+```
+
+Xem [report kiểm chứng đã lưu](docs/metrics/local-verification-2026-09-24.json).
+Repo hiện chưa có workload có kiểm soát và phép đo ở mức từng event, vì vậy tài
+liệu chủ động **không tuyên bố** throughput CDC, end-to-end latency, tỉ lệ dedup,
+kích thước batch tối đa hay consumer lag dưới tải.
 
 ---
 

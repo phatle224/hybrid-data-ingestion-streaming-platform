@@ -1,6 +1,6 @@
 # Project Architecture & Data Flow
 
-The **Hybrid Data Ingestion & Streaming ETL Platform** is a modern data platform that integrates real-time online data streaming (Online CDC) and offline batch data ingestion (Offline Excel Upload). The project adopts the **Modern Data Stack (MDS)** model using **dbt** to normalize data into a **Star Schema (Dimensional Modeling)** structure.
+The **Hybrid Data Ingestion & Streaming ELT Platform** is a modern data platform that integrates real-time online data streaming (Online CDC) and offline batch data ingestion (Offline Excel Upload). The project adopts the **Modern Data Stack (MDS)** model using **dbt** to normalize data into a **Star Schema (Dimensional Modeling)** structure.
 
 ---
 

@@ -17,6 +17,7 @@ dist/
 build/
 logs/
 debezium_data/
+interview/
 
 # Node
 node_modules/

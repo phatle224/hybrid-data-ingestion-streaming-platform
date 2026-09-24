@@ -1,5 +1,5 @@
 <div>
-  <img style="width: 100%" src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&reversal=true&text=Hybrid%20ETL%20Platform&fontSize=30&fontColor=ffffff&fontAlign=50&fontAlignY=45&rotate=0&stroke=-&animation=twinkling&desc=Real-time%20CDC%20%E2%80%A2%20Offline%20Excel%20Ingestion&descSize=15&descAlign=50&descAlignY=65&textBg=false&color=gradient" />
+  <img style="width: 100%" src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&reversal=true&text=Hybrid%20ELT%20Platform&fontSize=30&fontColor=ffffff&fontAlign=50&fontAlignY=45&rotate=0&stroke=-&animation=twinkling&desc=Real-time%20CDC%20%E2%80%A2%20Offline%20Excel%20Ingestion&descSize=15&descAlign=50&descAlignY=65&textBg=false&color=gradient" />
 </div>
 
 <div align="center">
@@ -24,7 +24,7 @@
 1. [Project Overview](#project-overview)
 2. [System Architecture & Data Flow](#system-architecture--data-flow)
 3. [Core Features](#core-features)
-4. [System Performance & Benchmarks](#system-performance--benchmarks)
+4. [Local Verification & Metrics](#local-verification--metrics)
 5. [Tech Stack](#tech-stack)
 6. [Directory Structure](#directory-structure)
 7. [Quick Start Guide](#quick-start-guide)
@@ -35,7 +35,7 @@
 
 ## Project Overview
 
-This project implements a **Hybrid Data Ingestion & Streaming ETL Platform** designed for managing insurance contracts. The system seamlessly integrates two fundamentally different data channels:
+This project implements a **Hybrid Data Ingestion & Streaming ELT Platform** designed for managing insurance contracts. The system seamlessly integrates two fundamentally different data channels:
 1. **Online Real-time CDC (Change Data Capture)**: Automatically captures data change events (INSERT, UPDATE, DELETE) directly from the production database of the sales system.
 2. **Offline Batch Ingestion Portal**: Allows partners or administrators to manually upload raw contract reports via Excel files.
 
@@ -50,15 +50,12 @@ The core objective is to automate data collection, perform cross-deduplication, 
 
 The architecture is fully containerized using Docker, ensuring a smooth data flow from source systems to the reporting layer.
 
-### Project Workflow
-![Project Workflow](docs/images/project_workflow.png)
-
 ### Ingestion & Transformation Pipeline
 ```mermaid
 flowchart TB
     subgraph "Online CDC Channel"
         SRC_DB[("Production DB<br/>(insustream_sale)")]
-        DBZ_SRC["Debezium Source<br/>(Binlog Reader)"]
+        DBZ_SRC["Debezium Source<br/>(PostgreSQL WAL Reader)"]
         KF_SRC{{"Kafka Topics<br/>(source.public.*)"}}
         CDC_CONS["CDC Consumer<br/>(Source to Staging)"]
     end
@@ -92,7 +89,7 @@ flowchart TB
     end
 
     %% Online Channel
-    SRC_DB -->|PostgreSQL Binlog| DBZ_SRC
+    SRC_DB -->|PostgreSQL WAL / logical decoding| DBZ_SRC
     DBZ_SRC --> KF_SRC
     KF_SRC --> CDC_CONS
     CDC_CONS -->|Transform & UPSERT| STG_DB
@@ -152,22 +149,29 @@ The system visually displays different scenarios of data processing results on t
 
 ---
 
-## System Performance & Benchmarks
+## Local Verification & Metrics
 
-Performance metrics measured on a local Docker environment (8 vCPU, 16 GB RAM):
+The following is a local-demo snapshot captured on **2026-09-24**. It is a
+verification run, not a production performance benchmark.
 
-| Metric | Value | Description |
-|--------|-------|-------------|
-| **Online CDC Throughput** | ~500 events/sec (peak) | Debezium captures WAL events, Kafka buffers, Consumer writes to staging |
-| **Offline Batch Throughput** | ~50,000 records/batch | Excel upload processed via FastAPI + Pandas in a single API call |
-| **End-to-End CDC Latency** | < 1.5 seconds | Time from production DB write to staging table materialization |
-| **Deduplication Rate** | ~18% of offline uploads | Records matched and rejected by 7-business-key cross-channel dedup |
-| **dbt Incremental Run** | ~8 seconds | Incremental models process only new/changed data since last run |
-| **dbt Full-Refresh Run** | ~45 seconds | Complete rebuild of all warehouse and mart tables from scratch |
-| **dbt Test Coverage** | 54 tests across 3 layers | Staging (source + model), Warehouse (dimensions + facts), Mart |
-| **Kafka Consumer Lag** | < 50 messages (steady state) | Measured via Kafka Exporter + Grafana dashboard |
+| Check | Observed result | Scope |
+|-------|-----------------|-------|
+| **dbt model run** | 21/21 models succeeded in 4.46 s | Scheduler container, dbt Core 1.12.5, 4 threads |
+| **dbt data tests** | 101 configured: 95 pass, 2 warn, 4 fail in 2.91 s | Local venv, dbt Core 1.12.0-b3; failures are listed in the report |
+| **Warehouse facts** | 5,753 contracts; 1,126 claims | Exact row counts after the run |
+| **Data marts** | 5,757 contract-summary rows; 1,126 profiling rows | Exact row counts after the run |
+| **Runtime health** | 9/9 documented HTTP endpoints returned 200 | Portal, Kafka/Debezium UIs, Connect, Prometheus, Grafana, exporters |
 
-> **Note**: Metrics are based on a dataset of ~120,000 contract records and ~8,000 claims. Production environments with horizontal scaling (multiple Kafka partitions + consumer instances) can achieve significantly higher throughput.
+Reproduce the snapshot after running `dbt test`:
+
+```powershell
+services/dbt_analytics/.venv/Scripts/python scripts/verify_local_metrics.py --run-dbt-test
+```
+
+See the [captured verification report](docs/metrics/local-verification-2026-09-24.json).
+CDC throughput, end-to-end latency, deduplication rate, maximum batch size, and
+consumer lag under load are intentionally **not claimed** because the repository
+does not yet contain a controlled workload and event-level measurement harness.
 
 ---
 

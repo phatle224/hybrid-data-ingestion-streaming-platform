@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide provides step-by-step instructions to spin up the entire infrastructure of the **Hybrid Data Ingestion & Streaming ETL Platform** locally using Docker Compose.
+This guide provides step-by-step instructions to spin up the entire infrastructure of the **Hybrid Data Ingestion & Streaming ELT Platform** locally using Docker Compose.
 
 ---
 
