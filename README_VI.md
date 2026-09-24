@@ -71,7 +71,7 @@ flowchart TB
     end
 
     subgraph "Luồng Biến Đổi & DWH (dbt ELT)"
-        SCHEDULER["dbt Scheduler Daemon /<br/>Airflow Operator"]
+        SCHEDULER["dbt Scheduler Daemon"]
         DBT_ANALYTICS["dbt Analytics Project<br/>(Models, Tests & Marts)"]
     end
 
@@ -157,7 +157,7 @@ Snapshot dưới đây được ghi nhận trên môi trường demo cục bộ 
 | Hạng mục | Kết quả quan sát | Phạm vi |
 |----------|------------------|---------|
 | **Chạy model dbt** | 21/21 model thành công trong 4,46 giây | Container scheduler, dbt Core 1.12.5, 4 threads |
-| **Data test dbt** | 101 test được cấu hình: 95 pass, 2 warning, 4 fail trong 2,91 giây | Venv cục bộ, dbt Core 1.12.0-b3; lỗi được liệt kê trong report |
+| **Data test dbt** | 101 test được cấu hình: 95 pass, 2 warning, 4 fail trong 2,91 giây | Venv cục bộ, dbt Core 1.12.0-b3; phát hiện và diễn giải nằm trong report |
 | **Fact trong warehouse** | 5.753 hợp đồng; 1.126 claim | Số dòng chính xác sau lần chạy |
 | **Data mart** | 5.757 dòng contract summary; 1.126 dòng profiling | Số dòng chính xác sau lần chạy |
 | **Runtime health** | 9/9 HTTP endpoint trong tài liệu trả về 200 | Portal, Kafka/Debezium UI, Connect, Prometheus, Grafana, exporters |
@@ -169,6 +169,7 @@ services/dbt_analytics/.venv/Scripts/python scripts/verify_local_metrics.py --ru
 ```
 
 Xem [report kiểm chứng đã lưu](docs/metrics/local-verification-2026-09-24.json).
+Bốn lỗi là các phát hiện được ghi nhận trên synthetic demo: thiếu `people_name` ở House/Vehicle, một collision của khóa insured-person và ID hợp đồng trùng trong trạng thái incremental hiện tại của mart. Các lỗi này không bị ẩn hoặc tính thành pass.
 Repo hiện chưa có workload có kiểm soát và phép đo ở mức từng event, vì vậy tài
 liệu chủ động **không tuyên bố** throughput CDC, end-to-end latency, tỉ lệ dedup,
 kích thước batch tối đa hay consumer lag dưới tải.

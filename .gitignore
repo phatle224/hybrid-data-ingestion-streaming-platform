@@ -19,6 +19,11 @@ logs/
 debezium_data/
 interview/
 
+# Local agent metadata (not part of the application)
+.cursorrules
+.agents/
+skills-lock.json
+
 # Node
 node_modules/
 npm-debug.log*

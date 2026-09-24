@@ -51,6 +51,12 @@
         "status": "fail",
         "failing_rows": 4
       }
+    ],
+    "interpretation": [
+      "The five House and five Vehicle not_null failures are missing people_name values preserved from the synthetic source rows; the staging models intentionally surface them instead of silently filling them.",
+      "The insured-person uniqueness failure reflects a collision in the current MD5 key definition (name, date of birth, and phone) versus the wider source grouping; it is a model/data-quality issue to remediate.",
+      "The contract-summary uniqueness failure reflects duplicate contract_object_id values already materialized by the current incremental mart state; it is reported as a failure, not hidden.",
+      "All findings are from the local synthetic demo dataset and contain no production customer data."
     ]
   },
   "database": {

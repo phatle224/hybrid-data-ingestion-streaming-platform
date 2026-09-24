@@ -71,7 +71,7 @@ flowchart TB
     end
 
     subgraph "dbt ELT Transformation"
-        SCHEDULER["dbt Scheduler Daemon /<br/>Airflow Operator"]
+        SCHEDULER["dbt Scheduler Daemon"]
         DBT_ANALYTICS["dbt Analytics Project<br/>(Models, Tests & Marts)"]
     end
 
@@ -157,7 +157,7 @@ verification run, not a production performance benchmark.
 | Check | Observed result | Scope |
 |-------|-----------------|-------|
 | **dbt model run** | 21/21 models succeeded in 4.46 s | Scheduler container, dbt Core 1.12.5, 4 threads |
-| **dbt data tests** | 101 configured: 95 pass, 2 warn, 4 fail in 2.91 s | Local venv, dbt Core 1.12.0-b3; failures are listed in the report |
+| **dbt data tests** | 101 configured: 95 pass, 2 warn, 4 fail in 2.91 s | Local venv, dbt Core 1.12.0-b3; findings and interpretation are listed in the report |
 | **Warehouse facts** | 5,753 contracts; 1,126 claims | Exact row counts after the run |
 | **Data marts** | 5,757 contract-summary rows; 1,126 profiling rows | Exact row counts after the run |
 | **Runtime health** | 9/9 documented HTTP endpoints returned 200 | Portal, Kafka/Debezium UIs, Connect, Prometheus, Grafana, exporters |
@@ -169,6 +169,7 @@ services/dbt_analytics/.venv/Scripts/python scripts/verify_local_metrics.py --ru
 ```
 
 See the [captured verification report](docs/metrics/local-verification-2026-09-24.json).
+The four failures are documented findings in the synthetic demo: missing House/Vehicle `people_name` values, one insured-person key collision, and duplicate contract IDs in the current incremental mart state. They are not suppressed or counted as passes.
 CDC throughput, end-to-end latency, deduplication rate, maximum batch size, and
 consumer lag under load are intentionally **not claimed** because the repository
 does not yet contain a controlled workload and event-level measurement harness.
